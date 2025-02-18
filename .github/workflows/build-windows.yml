@@ -36,52 +36,23 @@ jobs:
     - name: Build executable
       run: python build.py
       
-    - name: Download and Install Inno Setup
+    - name: Download Portable Inno Setup
       run: |
-        $setupUrl = "https://files.jrsoftware.org/is/6/innosetup-6.2.2.exe"
-        $setupFile = "innosetup.exe"
+        $setupUrl = "https://files.jrsoftware.org/is/6/innosetup-6.2.2.zip"
+        $setupFile = "innosetup.zip"
         
-        # Download with retry logic
-        $maxAttempts = 3
-        $attempt = 1
-        do {
-            try {
-                Write-Host "Downloading Inno Setup (Attempt $attempt of $maxAttempts)..."
-                Invoke-WebRequest -Uri $setupUrl -OutFile $setupFile -TimeoutSec 30
-                break
-            } catch {
-                if ($attempt -eq $maxAttempts) {
-                    throw "Failed to download Inno Setup after $maxAttempts attempts"
-                }
-                $attempt++
-                Start-Sleep -Seconds 10
-            }
-        } while ($true)
+        Write-Host "Downloading Portable Inno Setup..."
+        Invoke-WebRequest -Uri $setupUrl -OutFile $setupFile -TimeoutSec 30
         
-        # Install with timeout
-        Write-Host "Installing Inno Setup..."
-        $process = Start-Process -FilePath $setupFile -ArgumentList "/VERYSILENT /SUPPRESSMSGBOXES /NORESTART" -PassThru
-        $timeoutSeconds = 300
-        if (Wait-Process -InputObject $process -Timeout $timeoutSeconds -ErrorAction SilentlyContinue) {
-            Write-Host "Inno Setup installation completed"
-        } else {
-            Write-Host "Installation timed out after $timeoutSeconds seconds"
-            Stop-Process -InputObject $process -Force
-            throw "Inno Setup installation timed out"
-        }
-      shell: pwsh
-        
-    - name: Create installer directory
-      run: |
-        if (!(Test-Path -Path "installer")) {
-            New-Item -ItemType Directory -Path "installer" -Force
-        }
+        Write-Host "Extracting Inno Setup..."
+        Expand-Archive -Path $setupFile -DestinationPath "innosetup" -Force
       shell: pwsh
       
     - name: Build installer
       run: |
-        & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer.iss
-        
+        .\innosetup\ISCC.exe installer.iss
+      shell: pwsh
+      
     - name: Upload installer
       uses: actions/upload-artifact@v4
       with:
