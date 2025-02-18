@@ -26,8 +26,13 @@ jobs:
         
     - name: Create assets directory
       run: |
-        mkdir assets
-        echo "Creating placeholder icon..." > assets/icon.ico
+        if (!(Test-Path -Path "assets")) {
+            New-Item -ItemType Directory -Path "assets" -Force
+        }
+        if (!(Test-Path -Path "assets/icon.ico")) {
+            Set-Content -Path "assets/icon.ico" -Value "Creating placeholder icon..."
+        }
+      shell: pwsh
         
     - name: Build executable
       run: python build.py
@@ -41,7 +46,11 @@ jobs:
         Start-Process -FilePath "innosetup.exe" -ArgumentList "/VERYSILENT /SUPPRESSMSGBOXES /NORESTART" -Wait
         
     - name: Create installer directory
-      run: mkdir installer
+      run: |
+        if (!(Test-Path -Path "installer")) {
+            New-Item -ItemType Directory -Path "installer" -Force
+        }
+      shell: pwsh
       
     - name: Build installer
       run: |
