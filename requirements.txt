@@ -1,0 +1,5 @@
+tkcalendar==1.6.1
+customtkinter==5.2.1
+pillow==11.1.0
+python-dateutil==2.8.2
+pyinstaller==6.12.0 
