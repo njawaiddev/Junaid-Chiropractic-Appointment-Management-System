@@ -10,6 +10,7 @@ on:
 jobs:
   build:
     runs-on: windows-latest
+    timeout-minutes: 15  # Add overall timeout
     
     steps:
     - uses: actions/checkout@v3
@@ -35,13 +36,40 @@ jobs:
     - name: Build executable
       run: python build.py
       
-    - name: Download Inno Setup
+    - name: Download and Install Inno Setup
       run: |
-        Invoke-WebRequest "https://files.jrsoftware.org/is/6/innosetup-6.2.2.exe" -OutFile "innosetup.exe"
+        $setupUrl = "https://files.jrsoftware.org/is/6/innosetup-6.2.2.exe"
+        $setupFile = "innosetup.exe"
         
-    - name: Install Inno Setup
-      run: |
-        Start-Process -FilePath "innosetup.exe" -ArgumentList "/VERYSILENT /SUPPRESSMSGBOXES /NORESTART" -Wait
+        # Download with retry logic
+        $maxAttempts = 3
+        $attempt = 1
+        do {
+            try {
+                Write-Host "Downloading Inno Setup (Attempt $attempt of $maxAttempts)..."
+                Invoke-WebRequest -Uri $setupUrl -OutFile $setupFile -TimeoutSec 30
+                break
+            } catch {
+                if ($attempt -eq $maxAttempts) {
+                    throw "Failed to download Inno Setup after $maxAttempts attempts"
+                }
+                $attempt++
+                Start-Sleep -Seconds 10
+            }
+        } while ($true)
+        
+        # Install with timeout
+        Write-Host "Installing Inno Setup..."
+        $process = Start-Process -FilePath $setupFile -ArgumentList "/VERYSILENT /SUPPRESSMSGBOXES /NORESTART" -PassThru
+        $timeoutSeconds = 300
+        if (Wait-Process -InputObject $process -Timeout $timeoutSeconds -ErrorAction SilentlyContinue) {
+            Write-Host "Inno Setup installation completed"
+        } else {
+            Write-Host "Installation timed out after $timeoutSeconds seconds"
+            Stop-Process -InputObject $process -Force
+            throw "Inno Setup installation timed out"
+        }
+      shell: pwsh
         
     - name: Create installer directory
       run: |
@@ -54,8 +82,8 @@ jobs:
       run: |
         & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer.iss
         
-    - name: Upload installer artifact
+    - name: Upload installer
       uses: actions/upload-artifact@v4
       with:
-        name: ChiropracticManager-Setup
-        path: installer/ChiropracticManager_Setup.exe 
+        name: ChiropracticManager-Installer
+        path: installer/ChiropracticManager-Setup.exe 
