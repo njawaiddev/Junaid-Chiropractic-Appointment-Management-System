@@ -1,37 +1,167 @@
 import PyInstaller.__main__
 import sys
 import os
+import shutil
+from pathlib import Path
+
+def create_assets():
+    """Create necessary asset directories and files"""
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    assets_dir = os.path.join(script_dir, "assets")
+    
+    # Create assets directory if it doesn't exist
+    os.makedirs(assets_dir, exist_ok=True)
+    
+    # Create or update icon file
+    icon_path = os.path.join(assets_dir, "icon.ico")
+    if not os.path.exists(icon_path):
+        # TODO: Add your icon file here
+        print("Please add an icon.ico file to the assets directory")
+
+def collect_data_files():
+    """Collect all necessary data files"""
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    data_files = []
+    
+    # Add assets directory
+    assets_dir = os.path.join(script_dir, "assets")
+    if os.path.exists(assets_dir):
+        data_files.append((assets_dir, 'assets'))
+    
+    # Add source directory
+    src_dir = os.path.join(script_dir, "src")
+    if os.path.exists(src_dir):
+        data_files.append((src_dir, 'src'))
+    
+    return data_files
 
 def build_exe():
     """Build the executable using PyInstaller"""
     # Get the absolute path of the script directory
     script_dir = os.path.dirname(os.path.abspath(__file__))
     
+    # Ensure assets exist
+    create_assets()
+    
     # Set the paths
     main_script = os.path.join(script_dir, "src", "main.py")
     icon_path = os.path.join(script_dir, "assets", "icon.ico")
+    dist_path = os.path.join(script_dir, "dist")
+    build_path = os.path.join(script_dir, "build")
     
-    # Create the assets directory if it doesn't exist
-    os.makedirs(os.path.join(script_dir, "assets"), exist_ok=True)
+    # Clean previous builds
+    for path in [dist_path, build_path]:
+        if os.path.exists(path):
+            shutil.rmtree(path)
     
-    # PyInstaller arguments
+    # Collect data files
+    data_files = collect_data_files()
+    
+    # Base PyInstaller arguments
     args = [
         main_script,
         "--name=ChiropracticManager",
         "--onefile",
         "--windowed",
         "--clean",
-        f"--distpath={os.path.join(script_dir, 'dist')}",
-        f"--workpath={os.path.join(script_dir, 'build')}",
-        f"--specpath={os.path.join(script_dir, 'build')}"
+        "--noconfirm",
+        f"--distpath={dist_path}",
+        f"--workpath={build_path}",
+        f"--specpath={build_path}",
     ]
     
     # Add icon if available
     if os.path.exists(icon_path):
         args.append(f"--icon={icon_path}")
     
+    # Add data files
+    for src, dst in data_files:
+        # Use absolute paths for data files
+        args.append(f"--add-data={src}:{dst}")
+    
+    # Add hidden imports
+    hidden_imports = [
+        "PIL",
+        "PIL._tkinter_finder",
+        "tkcalendar",
+        "babel.numbers",
+        "customtkinter",
+    ]
+    for imp in hidden_imports:
+        args.append(f"--hidden-import={imp}")
+    
     # Run PyInstaller
     PyInstaller.__main__.run(args)
+    
+    print("\nBuild completed successfully!")
+    print(f"Executable can be found in: {dist_path}")
+
+def create_inno_setup_script():
+    """Create Inno Setup script for Windows installer"""
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    inno_script = os.path.join(script_dir, "installer.iss")
+    
+    script_content = """
+#define MyAppName "Chiropractic Manager"
+#define MyAppVersion "1.0"
+#define MyAppPublisher "Your Company Name"
+#define MyAppURL "https://www.yourwebsite.com"
+#define MyAppExeName "ChiropracticManager.exe"
+
+[Setup]
+AppId={{YOUR-GUID-HERE}}
+AppName={#MyAppName}
+AppVersion={#MyAppVersion}
+AppPublisher={#MyAppPublisher}
+AppPublisherURL={#MyAppURL}
+AppSupportURL={#MyAppURL}
+AppUpdatesURL={#MyAppURL}
+DefaultDirName={autopf}\\{#MyAppName}
+DefaultGroupName={#MyAppName}
+AllowNoIcons=yes
+LicenseFile=LICENSE.txt
+OutputDir=installer
+OutputBaseFilename=ChiropracticManager_Setup
+SetupIconFile=assets\\icon.ico
+Compression=lzma
+SolidCompression=yes
+WizardStyle=modern
+
+[Languages]
+Name: "english"; MessagesFile: "compiler:Default.isl"
+
+[Tasks]
+Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
+Name: "quicklaunchicon"; Description: "{cm:CreateQuickLaunchIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked; OnlyBelowVersion: 6.1; Check: not IsAdminInstallMode
+
+[Files]
+Source: "dist\\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
+Source: "assets\\*"; DestDir: "{app}\\assets"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "LICENSE.txt"; DestDir: "{app}"; Flags: ignoreversion
+
+[Icons]
+Name: "{group}\\{#MyAppName}"; Filename: "{app}\\{#MyAppExeName}"
+Name: "{group}\\{cm:UninstallProgram,{#MyAppName}}"; Filename: "{uninstallexe}"
+Name: "{autodesktop}\\{#MyAppName}"; Filename: "{app}\\{#MyAppExeName}"; Tasks: desktopicon
+Name: "{userappdata}\\Microsoft\\Internet Explorer\\Quick Launch\\{#MyAppName}"; Filename: "{app}\\{#MyAppExeName}"; Tasks: quicklaunchicon
+
+[Run]
+Filename: "{app}\\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent
+"""
+    
+    with open(inno_script, "w") as f:
+        f.write(script_content)
+    
+    print(f"Inno Setup script created at: {inno_script}")
 
 if __name__ == "__main__":
-    build_exe() 
+    # Build executable
+    build_exe()
+    
+    # Create Inno Setup script
+    create_inno_setup_script()
+    
+    print("\nNext steps:")
+    print("1. Install Inno Setup from: https://jrsoftware.org/isdl.php")
+    print("2. Compile installer.iss with Inno Setup to create the installer")
+    print("3. The installer will be created in the 'installer' directory") 

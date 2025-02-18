@@ -1,0 +1,54 @@
+name: Build Windows Installer
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:  # Allows manual trigger
+
+jobs:
+  build:
+    runs-on: windows-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r build_requirements.txt
+        
+    - name: Create assets directory
+      run: |
+        mkdir assets
+        echo "Creating placeholder icon..." > assets/icon.ico
+        
+    - name: Build executable
+      run: python build.py
+      
+    - name: Download Inno Setup
+      run: |
+        Invoke-WebRequest "https://files.jrsoftware.org/is/6/innosetup-6.2.2.exe" -OutFile "innosetup.exe"
+        
+    - name: Install Inno Setup
+      run: |
+        Start-Process -FilePath "innosetup.exe" -ArgumentList "/VERYSILENT /SUPPRESSMSGBOXES /NORESTART" -Wait
+        
+    - name: Create installer directory
+      run: mkdir installer
+      
+    - name: Build installer
+      run: |
+        & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer.iss
+        
+    - name: Upload installer artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: ChiropracticManager-Setup
+        path: installer/ChiropracticManager_Setup.exe 

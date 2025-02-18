@@ -162,7 +162,7 @@ class PatientFrame(ctk.CTkFrame):
         )
         
         # Create treeview with modern columns
-        columns = ("Name", "Phone")
+        columns = ("ID", "Name", "Age", "Phone")
         self.patient_tree = ttk.Treeview(
             tree_frame,
             columns=columns,
@@ -176,8 +176,10 @@ class PatientFrame(ctk.CTkFrame):
             self.patient_tree.heading(col, text=col)
             self.patient_tree.column(col, anchor="w")
         
+        self.patient_tree.column("ID", width=80, minwidth=80)
         self.patient_tree.column("Name", width=250, minwidth=200)
-        self.patient_tree.column("Phone", width=200, minwidth=150)
+        self.patient_tree.column("Age", width=80, minwidth=80)
+        self.patient_tree.column("Phone", width=150, minwidth=150)
         
         # Modern scrollbar
         scrollbar = ttk.Scrollbar(tree_frame, orient="vertical", command=self.patient_tree.yview)
@@ -197,46 +199,76 @@ class PatientFrame(ctk.CTkFrame):
         """Setup personal information tab"""
         # Create scrollable frame
         container = ctk.CTkScrollableFrame(parent)
-        container.pack(fill="both", expand=True, padx=5, pady=5)
+        container.pack(fill="both", expand=True, padx=10, pady=10)
         container.grid_columnconfigure(0, weight=1)
         
         # Title and mandatory fields section
         mandatory_frame = ctk.CTkFrame(container)
-        mandatory_frame.pack(fill="x", pady=(0, 5))
-        mandatory_frame.grid_columnconfigure((0, 1), weight=1)  # Both columns expand equally
+        mandatory_frame.pack(fill="x", pady=(0, 10))
+        mandatory_frame.grid_columnconfigure(1, weight=1)  # Make entry fields expand
         
-        # Left column fields
         row = 0
         
         # Title selection
-        ctk.CTkLabel(mandatory_frame, text="Title:", text_color=TEXT_PRIMARY).grid(row=row, column=0, sticky="w", padx=5)
+        ctk.CTkLabel(
+            mandatory_frame,
+            text="Title:",
+            text_color=TEXT_PRIMARY,
+            font=("Helvetica", 12)
+        ).grid(row=row, column=0, sticky="w", padx=10, pady=10)
+        
         self.title_var = tk.StringVar()
         title_cb = ctk.CTkComboBox(
             mandatory_frame,
-            values=["Mr.", "Mrs.", "Ms.", "Dr."],
+            values=["Mr.", "Mrs.", "Ms.", "Dr.", "Prof."],
             variable=self.title_var,
-            width=100
+            width=120,
+            height=35,
+            font=("Helvetica", 12)
         )
-        title_cb.grid(row=row, column=1, sticky="w", padx=5, pady=2)
+        title_cb.grid(row=row, column=1, sticky="w", padx=10, pady=10)
         row += 1
         
         # First Name (mandatory)
-        ctk.CTkLabel(mandatory_frame, text="First Name:*", text_color=TEXT_PRIMARY).grid(row=row, column=0, sticky="w", padx=5)
+        ctk.CTkLabel(
+            mandatory_frame,
+            text="First Name:*",
+            text_color=TEXT_PRIMARY,
+            font=("Helvetica", 12)
+        ).grid(row=row, column=0, sticky="w", padx=10, pady=10)
+        
+        self.first_name_var = tk.StringVar()
+        self.first_name_var.trace_add("write", lambda *args: self.validate_name(self.first_name_var))
         self.first_name_entry = self.create_entry(mandatory_frame)
-        self.first_name_entry.grid(row=row, column=1, sticky="ew", padx=5, pady=2)
+        self.first_name_entry.configure(textvariable=self.first_name_var)
+        self.first_name_entry.grid(row=row, column=1, sticky="ew", padx=10, pady=10)
         row += 1
         
         # Last Name (mandatory)
-        ctk.CTkLabel(mandatory_frame, text="Last Name:*", text_color=TEXT_PRIMARY).grid(row=row, column=0, sticky="w", padx=5)
+        ctk.CTkLabel(
+            mandatory_frame,
+            text="Last Name:*",
+            text_color=TEXT_PRIMARY,
+            font=("Helvetica", 12)
+        ).grid(row=row, column=0, sticky="w", padx=10, pady=10)
+        
+        self.last_name_var = tk.StringVar()
+        self.last_name_var.trace_add("write", lambda *args: self.validate_name(self.last_name_var))
         self.last_name_entry = self.create_entry(mandatory_frame)
-        self.last_name_entry.grid(row=row, column=1, sticky="ew", padx=5, pady=2)
+        self.last_name_entry.configure(textvariable=self.last_name_var)
+        self.last_name_entry.grid(row=row, column=1, sticky="ew", padx=10, pady=10)
         row += 1
         
         # Gender (mandatory)
-        ctk.CTkLabel(mandatory_frame, text="Gender:*", text_color=TEXT_PRIMARY).grid(row=row, column=0, sticky="w", padx=5)
+        ctk.CTkLabel(
+            mandatory_frame,
+            text="Gender:*",
+            text_color=TEXT_PRIMARY,
+            font=("Helvetica", 12)
+        ).grid(row=row, column=0, sticky="w", padx=10, pady=10)
+        
         gender_frame = ctk.CTkFrame(mandatory_frame)
-        gender_frame.grid(row=row, column=1, sticky="ew", padx=5, pady=2)
-        gender_frame.grid_columnconfigure((0, 1, 2), weight=1)
+        gender_frame.grid(row=row, column=1, sticky="ew", padx=10, pady=10)
         
         self.gender_var = tk.StringVar(value="Male")
         for i, gender in enumerate(["Male", "Female", "Other"]):
@@ -244,26 +276,53 @@ class PatientFrame(ctk.CTkFrame):
                 gender_frame,
                 text=gender,
                 variable=self.gender_var,
-                value=gender
-            ).grid(row=0, column=i, padx=10)
+                value=gender,
+                font=("Helvetica", 12)
+            ).pack(side="left", padx=25, pady=5)
         row += 1
         
-        # Age
-        ctk.CTkLabel(mandatory_frame, text="Age:*", text_color=TEXT_PRIMARY).grid(row=row, column=0, sticky="w", padx=5)
+        # Age with validation
+        ctk.CTkLabel(
+            mandatory_frame,
+            text="Age:*",
+            text_color=TEXT_PRIMARY,
+            font=("Helvetica", 12)
+        ).grid(row=row, column=0, sticky="w", padx=10, pady=10)
+        
+        self.age_var = tk.StringVar()
+        self.age_var.trace_add("write", self.validate_age)
         self.age_entry = self.create_entry(mandatory_frame, placeholder="Enter age")
-        self.age_entry.grid(row=row, column=1, sticky="ew", padx=5, pady=2)
+        self.age_entry.configure(textvariable=self.age_var, width=120)
+        self.age_entry.grid(row=row, column=1, sticky="w", padx=10, pady=10)
         row += 1
         
-        # Phone (mandatory)
-        ctk.CTkLabel(mandatory_frame, text="Phone:*", text_color=TEXT_PRIMARY).grid(row=row, column=0, sticky="w", padx=5)
-        self.phone_entry = self.create_entry(mandatory_frame)
-        self.phone_entry.grid(row=row, column=1, sticky="ew", padx=5, pady=2)
+        # Phone with validation
+        ctk.CTkLabel(
+            mandatory_frame,
+            text="Phone:*",
+            text_color=TEXT_PRIMARY,
+            font=("Helvetica", 12)
+        ).grid(row=row, column=0, sticky="w", padx=10, pady=10)
+        
+        self.phone_var = tk.StringVar()
+        self.phone_var.trace_add("write", self.validate_phone)
+        self.phone_entry = self.create_entry(mandatory_frame, placeholder="Enter phone number")
+        self.phone_entry.configure(textvariable=self.phone_var)
+        self.phone_entry.grid(row=row, column=1, sticky="ew", padx=10, pady=10)
         row += 1
         
         # Email
-        ctk.CTkLabel(mandatory_frame, text="Email:", text_color=TEXT_PRIMARY).grid(row=row, column=0, sticky="w", padx=5)
+        ctk.CTkLabel(
+            mandatory_frame,
+            text="Email:",
+            text_color=TEXT_PRIMARY,
+            font=("Helvetica", 12)
+        ).grid(row=row, column=0, sticky="w", padx=10, pady=10)
+        
+        self.email_var = tk.StringVar()
+        self.email_var.trace_add("write", self.validate_email)
         self.email_entry = self.create_entry(mandatory_frame)
-        self.email_entry.grid(row=row, column=1, sticky="ew", padx=5, pady=2)
+        self.email_entry.grid(row=row, column=1, sticky="ew", padx=10, pady=10)
         row += 1
         
         # Address Section
@@ -281,6 +340,8 @@ class PatientFrame(ctk.CTkFrame):
         
         # Street
         ctk.CTkLabel(address_frame, text="Street:", text_color=TEXT_PRIMARY).grid(row=1, column=0, sticky="w", padx=5)
+        self.street_var = tk.StringVar()
+        self.street_var.trace_add("write", self.validate_street)
         self.street_entry = self.create_entry(address_frame)
         self.street_entry.grid(row=1, column=1, sticky="ew", padx=5, pady=2)
         
@@ -291,16 +352,21 @@ class PatientFrame(ctk.CTkFrame):
         
         # City
         ctk.CTkLabel(city_state_frame, text="City:", text_color=TEXT_PRIMARY).grid(row=0, column=0, sticky="w", padx=5)
+        self.city_var = tk.StringVar()
+        self.city_var.trace_add("write", lambda *args: self.validate_name(self.city_var))
         self.city_entry = self.create_entry(city_state_frame)
         self.city_entry.grid(row=0, column=1, sticky="ew", padx=5)
         
         # State
         ctk.CTkLabel(city_state_frame, text="State:", text_color=TEXT_PRIMARY).grid(row=0, column=2, sticky="w", padx=5)
+        self.state_var = tk.StringVar()
+        self.state_var.trace_add("write", lambda *args: self.validate_name(self.state_var))
         self.state_entry = self.create_entry(city_state_frame)
         self.state_entry.grid(row=0, column=3, sticky="ew", padx=5)
         
-        # ZIP
-        ctk.CTkLabel(address_frame, text="ZIP:", text_color=TEXT_PRIMARY).grid(row=3, column=0, sticky="w", padx=5)
+        # ZIP with validation
+        self.zip_var = tk.StringVar()
+        self.zip_var.trace_add("write", self.validate_zip)
         self.zip_entry = self.create_entry(address_frame)
         self.zip_entry.grid(row=3, column=1, sticky="ew", padx=5, pady=2)
         
@@ -322,9 +388,12 @@ class PatientFrame(ctk.CTkFrame):
         self.emergency_name_entry = self.create_entry(emergency_frame)
         self.emergency_name_entry.grid(row=1, column=1, sticky="ew", padx=5, pady=2)
         
-        # Phone
+        # Emergency Phone with validation
         ctk.CTkLabel(emergency_frame, text="Phone:", text_color=TEXT_PRIMARY).grid(row=2, column=0, sticky="w", padx=5)
+        self.emergency_phone_var = tk.StringVar()
+        self.emergency_phone_var.trace_add("write", self.validate_emergency_phone)
         self.emergency_phone_entry = self.create_entry(emergency_frame)
+        self.emergency_phone_entry.configure(textvariable=self.emergency_phone_var)
         self.emergency_phone_entry.grid(row=2, column=1, sticky="ew", padx=5, pady=2)
         
         # Relationship
@@ -576,9 +645,9 @@ class PatientFrame(ctk.CTkFrame):
             fg_color="white",
             border_color=PRIMARY_BLUE,
             text_color=TEXT_PRIMARY,
-            height=32  # Increased height for better visibility
+            height=35,  # Increased height for better visibility
+            font=("Helvetica", 12)  # Consistent font size
         )
-        entry.grid(row=0, column=1, sticky="ew", padx=5)  # Use grid instead of pack
         return entry
     
     def create_textbox(self, parent, height=60):
@@ -622,21 +691,38 @@ class PatientFrame(ctk.CTkFrame):
         if not self.validate_mandatory_fields():
             return
         
+        # Validate individual fields
+        if not self.validate_name(self.first_name_var):
+            messagebox.showerror("Error", "First Name can only contain letters, spaces, and hyphens")
+            return
+            
+        if not self.validate_name(self.last_name_var):
+            messagebox.showerror("Error", "Last Name can only contain letters, spaces, and hyphens")
+            return
+            
+        if not self.validate_age(None):
+            messagebox.showerror("Error", "Age must be a number between 1 and 150")
+            return
+            
+        if not self.validate_phone(None):
+            messagebox.showerror("Error", "Phone number must be between 10 and 15 digits")
+            return
+        
         # Collect all field values
         patient_data = {
             'title': self.title_var.get(),
-            'first_name': self.first_name_entry.get().strip(),
-            'last_name': self.last_name_entry.get().strip(),
+            'first_name': self.first_name_var.get().strip(),
+            'last_name': self.last_name_var.get().strip(),
             'gender': self.gender_var.get(),
-            'age': int(self.age_entry.get().strip()),
-            'phone': self.phone_entry.get().strip(),
-            'email': self.email_entry.get().strip(),
-            'address_street': self.street_entry.get().strip(),
-            'address_city': self.city_entry.get().strip(),
-            'address_state': self.state_entry.get().strip(),
-            'address_zip': self.zip_entry.get().strip(),
+            'age': int(self.age_var.get().strip()),
+            'phone': self.phone_var.get().strip(),
+            'email': self.email_var.get().strip(),
+            'address_street': self.street_var.get().strip(),
+            'address_city': self.city_var.get().strip(),
+            'address_state': self.state_var.get().strip(),
+            'address_zip': self.zip_var.get().strip(),
             'emergency_contact_name': self.emergency_name_entry.get().strip(),
-            'emergency_contact_phone': self.emergency_phone_entry.get().strip(),
+            'emergency_contact_phone': self.emergency_phone_var.get().strip(),
             'emergency_contact_relation': self.emergency_relation_entry.get().strip(),
             'reference_source': self.reference_entry.get().strip(),
             'medical_conditions': self.conditions_text.get("1.0", "end-1c"),
@@ -673,47 +759,42 @@ class PatientFrame(ctk.CTkFrame):
     
     def validate_mandatory_fields(self):
         """Validate all mandatory fields"""
-        if not self.first_name_entry.get().strip():
+        if not self.first_name_var.get().strip():
             messagebox.showerror("Error", "First Name is required")
             return False
         
-        if not self.last_name_entry.get().strip():
+        if not self.last_name_var.get().strip():
             messagebox.showerror("Error", "Last Name is required")
             return False
         
-        if not self.phone_entry.get().strip():
+        if not self.phone_var.get().strip():
             messagebox.showerror("Error", "Phone number is required")
             return False
         
-        if not self.age_entry.get().strip():
+        if not self.age_var.get().strip():
             messagebox.showerror("Error", "Age is required")
-            return False
-        
-        # Validate age range
-        try:
-            age = int(self.age_entry.get().strip())
-            if age <= 0 or age > 150:
-                messagebox.showerror("Error", "Age must be between 1 and 150")
-                return False
-        except ValueError:
-            messagebox.showerror("Error", "Invalid age format. Must be a number")
             return False
         
         return True
     
     def refresh_patient_list(self, search_term=""):
         """Refresh the patient list"""
+        # Clear existing items
         for item in self.patient_tree.get_children():
             self.patient_tree.delete(item)
         
+        # Get patients matching search term
         patients = self.db.search_patients(search_term)
         
+        # Add patients to tree
         for patient in patients:
             self.patient_tree.insert(
                 "",
                 "end",
                 values=(
+                    patient['id'],
                     f"{patient['first_name']} {patient['last_name']}",
+                    patient['age'],
                     patient['phone']
                 ),
                 tags=(str(patient['id']),)
@@ -734,58 +815,38 @@ class PatientFrame(ctk.CTkFrame):
             self.title_var.set(patient.get('title', ''))
             
             # First Name
-            self.first_name_entry.delete(0, tk.END)
-            if patient.get('first_name'):
-                self.first_name_entry.insert(0, patient['first_name'])
+            self.first_name_var.set(patient['first_name'])
             
             # Last Name
-            self.last_name_entry.delete(0, tk.END)
-            if patient.get('last_name'):
-                self.last_name_entry.insert(0, patient['last_name'])
+            self.last_name_var.set(patient['last_name'])
             
             # Gender
             self.gender_var.set(patient.get('gender', 'Male'))
             
             # Age
-            self.age_entry.delete(0, tk.END)
-            if patient.get('age'):
-                self.age_entry.insert(0, str(patient['age']))
+            self.age_var.set(str(patient['age']))
             
             # Phone
-            self.phone_entry.delete(0, tk.END)
-            if patient.get('phone'):
-                self.phone_entry.insert(0, patient['phone'])
+            self.phone_var.set(patient['phone'])
             
             # Email
-            self.email_entry.delete(0, tk.END)
-            if patient.get('email'):
-                self.email_entry.insert(0, patient['email'])
+            self.email_var.set(patient['email'])
             
             # Address
-            self.street_entry.delete(0, tk.END)
-            if patient.get('address_street'):
-                self.street_entry.insert(0, patient['address_street'])
+            self.street_var.set(patient['address_street'])
             
-            self.city_entry.delete(0, tk.END)
-            if patient.get('address_city'):
-                self.city_entry.insert(0, patient['address_city'])
+            self.city_var.set(patient['address_city'])
             
-            self.state_entry.delete(0, tk.END)
-            if patient.get('address_state'):
-                self.state_entry.insert(0, patient['address_state'])
+            self.state_var.set(patient['address_state'])
             
-            self.zip_entry.delete(0, tk.END)
-            if patient.get('address_zip'):
-                self.zip_entry.insert(0, patient['address_zip'])
+            self.zip_var.set(patient['address_zip'])
             
             # Emergency Contact
             self.emergency_name_entry.delete(0, tk.END)
             if patient.get('emergency_contact_name'):
                 self.emergency_name_entry.insert(0, patient['emergency_contact_name'])
             
-            self.emergency_phone_entry.delete(0, tk.END)
-            if patient.get('emergency_contact_phone'):
-                self.emergency_phone_entry.insert(0, patient['emergency_contact_phone'])
+            self.emergency_phone_var.set(patient.get('emergency_contact_phone', ''))
             
             self.emergency_relation_entry.delete(0, tk.END)
             if patient.get('emergency_contact_relation'):
@@ -976,18 +1037,18 @@ class PatientFrame(ctk.CTkFrame):
         self.patient_tree.selection_remove(self.patient_tree.selection())
         
         self.title_var.set("")
-        self.first_name_entry.delete(0, "end")
-        self.last_name_entry.delete(0, "end")
+        self.first_name_var.set("")
+        self.last_name_var.set("")
         self.gender_var.set("Male")
-        self.age_entry.delete(0, "end")
-        self.phone_entry.delete(0, "end")
-        self.email_entry.delete(0, "end")
-        self.street_entry.delete(0, "end")
-        self.city_entry.delete(0, "end")
-        self.state_entry.delete(0, "end")
-        self.zip_entry.delete(0, "end")
+        self.age_var.set("")
+        self.phone_var.set("")
+        self.email_var.set("")
+        self.street_var.set("")
+        self.city_var.set("")
+        self.state_var.set("")
+        self.zip_var.set("")
         self.emergency_name_entry.delete(0, "end")
-        self.emergency_phone_entry.delete(0, "end")
+        self.emergency_phone_var.set("")
         self.emergency_relation_entry.delete(0, "end")
         self.reference_entry.delete(0, "end")
         self.conditions_text.delete("1.0", "end")
@@ -1026,74 +1087,99 @@ class PatientFrame(ctk.CTkFrame):
         """Handle search input change"""
         self.refresh_patient_list(self.search_var.get())
     
-    def validate_name_input(self, event):
+    def validate_name(self, var):
         """Validate name input - only letters, spaces, and hyphens allowed"""
-        widget = event.widget
-        current = widget.get()
-        valid = ''.join(char for char in current if char.isalpha() or char in [' ', '-'])
+        current = var.get()
+        # Remove any non-allowed characters immediately
+        valid = ''.join(c for c in current if c.isalpha() or c in [' ', '-'])
         if current != valid:
-            widget.delete(0, 'end')
-            widget.insert(0, valid)
+            var.set(valid)
+            return False
+        return True
 
-    def validate_age_input(self, event):
-        """Validate age input - only numbers allowed, max 150"""
-        current = self.age_entry.get()
-        valid = ''.join(char for char in current if char.isdigit())
+    def validate_age(self, *args):
+        """Validate age input - only numbers allowed and must be between 1-150"""
+        current = self.age_var.get()
+        # Remove any non-numeric characters immediately
+        valid = ''.join(c for c in current if c.isdigit())
+        
+        # Update the entry if non-numeric characters were removed
         if current != valid:
-            self.age_entry.delete(0, 'end')
-            self.age_entry.insert(0, valid)
-        if valid and int(valid) > 150:
-            self.age_entry.delete(0, 'end')
-            self.age_entry.insert(0, '150')
+            self.age_var.set(valid)
+            self.age_entry.configure(border_color=ERROR_RED)
+            return False
+            
+        # Check age range if there's a value
+        if valid:
+            try:
+                age = int(valid)
+                if age < 1 or age > 150:
+                    self.age_entry.configure(border_color=ERROR_RED)
+                    return False
+                else:
+                    self.age_entry.configure(border_color=PRIMARY_BLUE)
+                    return True
+            except ValueError:
+                self.age_entry.configure(border_color=ERROR_RED)
+                return False
+        else:
+            self.age_entry.configure(border_color=PRIMARY_BLUE)
+            return True
 
-    def validate_phone_input(self, event):
-        """Validate phone input - only numbers allowed"""
-        widget = event.widget
-        current = widget.get()
-        valid = ''.join(char for char in current if char.isdigit())
+    def validate_phone(self, *args):
+        """Validate phone input - only numbers allowed, length 10-15 digits"""
+        current = self.phone_var.get()
+        # Remove any non-numeric characters immediately
+        valid = ''.join(c for c in current if c.isdigit())
+        
+        # Update the entry if non-numeric characters were removed
         if current != valid:
-            widget.delete(0, 'end')
-            widget.insert(0, valid)
+            self.phone_var.set(valid)
+            self.phone_entry.configure(border_color=ERROR_RED)
+            return False
+            
+        # Check phone number length (10-15 digits)
+        if len(valid) > 0:
+            if len(valid) < 10 or len(valid) > 15:
+                self.phone_entry.configure(border_color=ERROR_RED)
+                return False
+            else:
+                self.phone_entry.configure(border_color=PRIMARY_BLUE)
+                return True
+        else:
+            self.phone_entry.configure(border_color=PRIMARY_BLUE)
+            return True
 
-    def validate_email_input(self, event):
-        """Validate email input - alphanumeric, @, ., and common email characters"""
-        current = self.email_entry.get()
-        valid = ''.join(char for char in current if char.isalnum() or char in ['@', '.', '_', '-'])
+    def validate_email(self, *args):
+        """Validate email input - only allow valid email characters"""
+        current = self.email_var.get()
+        valid = ''.join(c for c in current if c.isalnum() or c in ['@', '.', '_', '-'])
         if current != valid:
-            self.email_entry.delete(0, 'end')
-            self.email_entry.insert(0, valid)
+            self.email_var.set(valid)
 
-    def validate_address_input(self, event):
-        """Validate address input - alphanumeric, spaces, and common address characters"""
-        current = self.street_entry.get()
-        valid = ''.join(char for char in current if char.isalnum() or char in [' ', '-', ',', '.', '#', '/'])
+    def validate_street(self, *args):
+        """Validate street input - allow alphanumeric, spaces, hyphens, commas, periods, #, and /"""
+        current = self.street_var.get()
+        valid = ''.join(c for c in current if c.isalnum() or c in [' ', '-', ',', '.', '#', '/'])
         if current != valid:
-            self.street_entry.delete(0, 'end')
-            self.street_entry.insert(0, valid)
+            self.street_var.set(valid)
 
-    def validate_city_input(self, event):
-        """Validate city input - only letters, spaces, and hyphens allowed"""
-        current = self.city_entry.get()
-        valid = ''.join(char for char in current if char.isalpha() or char in [' ', '-'])
+    def validate_zip(self, *args):
+        """Validate ZIP input - only numbers allowed"""
+        current = self.zip_var.get()
+        # Remove any non-numeric characters
+        valid = ''.join(c for c in current if c.isdigit())
+        
+        # Update the entry if non-numeric characters were removed
         if current != valid:
-            self.city_entry.delete(0, 'end')
-            self.city_entry.insert(0, valid)
-
-    def validate_state_input(self, event):
-        """Validate state input - only letters allowed"""
-        current = self.state_entry.get()
-        valid = ''.join(char for char in current if char.isalpha())
-        if current != valid:
-            self.state_entry.delete(0, 'end')
-            self.state_entry.insert(0, valid)
-
-    def validate_zip_input(self, event):
-        """Validate zip input - only numbers allowed"""
-        current = self.zip_entry.get()
-        valid = ''.join(char for char in current if char.isdigit())
-        if current != valid:
-            self.zip_entry.delete(0, 'end')
-            self.zip_entry.insert(0, valid)
+            self.zip_var.set(valid)
+            self.zip_entry.configure(border_color=ERROR_RED)
+        else:
+            # Check ZIP code length (5 or 9 digits for US format)
+            if len(valid) > 0 and len(valid) not in [5, 9]:
+                self.zip_entry.configure(border_color=ERROR_RED)
+            else:
+                self.zip_entry.configure(border_color=PRIMARY_BLUE)
 
     def validate_text_input(self, event):
         """Validate text input - alphanumeric, spaces, and common punctuation"""
@@ -1122,9 +1208,9 @@ class PatientFrame(ctk.CTkFrame):
 
     def validate_inputs(self):
         """Validate all input fields"""
-        name = self.first_name_entry.get().strip()
-        age = self.age_entry.get().strip()
-        phone = self.phone_entry.get().strip()
+        name = self.first_name_var.get().strip()
+        age = self.age_var.get().strip()
+        phone = self.phone_var.get().strip()
         
         if not name:
             messagebox.showerror("Error", "First Name is required")
@@ -1142,4 +1228,21 @@ class PatientFrame(ctk.CTkFrame):
             messagebox.showerror("Error", "Invalid phone number format. Must be 10-15 digits")
             return False
         
-        return True 
+        return True
+
+    def validate_emergency_phone(self, *args):
+        """Validate emergency contact phone input - only numbers allowed"""
+        current = self.emergency_phone_var.get()
+        # Remove any non-numeric characters
+        valid = ''.join(c for c in current if c.isdigit())
+        
+        # Update the entry if non-numeric characters were removed
+        if current != valid:
+            self.emergency_phone_var.set(valid)
+            self.emergency_phone_entry.configure(border_color=ERROR_RED)
+        else:
+            # Check phone number length (10-15 digits)
+            if len(valid) > 0 and (len(valid) < 10 or len(valid) > 15):
+                self.emergency_phone_entry.configure(border_color=ERROR_RED)
+            else:
+                self.emergency_phone_entry.configure(border_color=PRIMARY_BLUE) 

@@ -1,0 +1,11 @@
+Chiropractic Manager Software License Agreement
+
+Copyright (c) 2024 Your Company Name
+
+Permission is hereby granted to use this software according to the terms and conditions specified during installation.
+
+1. This software is provided "as is" without warranty of any kind.
+2. The user agrees to use this software in compliance with all applicable laws and regulations.
+3. Unauthorized distribution or modification of this software is prohibited.
+
+By installing and using this software, you agree to these terms and conditions. 

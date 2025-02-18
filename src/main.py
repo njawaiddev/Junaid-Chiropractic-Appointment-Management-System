@@ -4,7 +4,10 @@ from pathlib import Path
 import sys
 from ui.dashboard import DashboardFrame
 from ui.patient_view import PatientFrame
+from ui.settings import SettingsFrame
+from ui.statistics import StatisticsFrame
 from database.db_manager import DatabaseManager
+from utils.backup_scheduler import BackupScheduler
 from utils.colors import *
 
 class ChiropracticApp:
@@ -16,11 +19,18 @@ class ChiropracticApp:
         # Initialize database
         self.db = DatabaseManager()
         
+        # Initialize backup scheduler
+        self.backup_scheduler = BackupScheduler(self.db)
+        self.backup_scheduler.start()
+        
         # Configure appearance
         self.setup_appearance()
         
         # Initialize UI components
         self.setup_ui()
+        
+        # Bind cleanup on window close
+        self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
         
     def setup_appearance(self):
         """Configure application appearance"""
@@ -91,6 +101,8 @@ class ChiropracticApp:
         # Add tabs
         self.tab_view.add("Dashboard")
         self.tab_view.add("Patients")
+        self.tab_view.add("Statistics")
+        self.tab_view.add("Settings")
         
         # Initialize frames
         self.dashboard_frame = DashboardFrame(
@@ -102,13 +114,23 @@ class ChiropracticApp:
             self.db,
             self.dashboard_frame.refresh_appointments
         )
+        self.statistics_frame = StatisticsFrame(
+            self.tab_view.tab("Statistics"),
+            self.db
+        )
+        self.settings_frame = SettingsFrame(
+            self.tab_view.tab("Settings"),
+            self.db
+        )
         
         # Configure tab frames to use full space
         self.dashboard_frame.pack(fill="both", expand=True, padx=5, pady=5)
         self.patient_frame.pack(fill="both", expand=True, padx=5, pady=5)
+        self.statistics_frame.pack(fill="both", expand=True, padx=5, pady=5)
+        self.settings_frame.pack(fill="both", expand=True, padx=5, pady=5)
         
         # Configure tab grid weights
-        for tab in ["Dashboard", "Patients"]:
+        for tab in ["Dashboard", "Patients", "Statistics", "Settings"]:
             self.tab_view.tab(tab).grid_columnconfigure(0, weight=1)
             self.tab_view.tab(tab).grid_rowconfigure(0, weight=1)
             self.tab_view.tab(tab).configure(fg_color="white")
@@ -119,6 +141,19 @@ class ChiropracticApp:
     def run(self):
         """Start the application"""
         self.root.mainloop()
+
+    def on_closing(self):
+        """Handle application closing"""
+        # Stop the backup scheduler
+        if self.backup_scheduler:
+            self.backup_scheduler.stop()
+        
+        # Close database connection
+        if self.db:
+            self.db.close()
+        
+        # Destroy the window
+        self.root.destroy()
 
 if __name__ == "__main__":
     # Create and run application

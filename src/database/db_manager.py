@@ -54,42 +54,60 @@ class DatabaseManager:
             # Create current month's appointment table
             self._create_month_appointment_table(datetime.now())
             
+            # Reconnect as _create_month_appointment_table closes the connection
+            self.connect()
             self.conn.commit()
         finally:
             self.close()
 
     def _create_month_appointment_table(self, date):
         """Create appointment table for specific month if it doesn't exist"""
-        month_year = date.strftime("%Y_%m")
-        
-        # Create the appointments table for this month
-        self.cursor.execute(
-            CREATE_APPOINTMENTS_TABLE_TEMPLATE.format(month_year=month_year)
-        )
-        
-        # Create the index
-        self.cursor.execute(
-            CREATE_APPOINTMENT_DATE_INDEX.format(month_year=month_year)
-        )
-        
-        self.conn.commit()
+        self.connect()  # Ensure we have a connection
+        try:
+            month_year = date.strftime("%Y_%m")
+            
+            # Create the appointments table for this month
+            self.cursor.execute(
+                CREATE_APPOINTMENTS_TABLE_TEMPLATE.format(month_year=month_year)
+            )
+            
+            # Create the index
+            self.cursor.execute(
+                CREATE_APPOINTMENT_DATE_INDEX.format(month_year=month_year)
+            )
+            
+            self.conn.commit()
+        finally:
+            self.close()
 
     def ensure_month_table_exists(self, date):
         """Ensure the appointments table exists for the given date"""
+        # Convert date to string if it's a datetime object
+        if isinstance(date, datetime):
+            date = date.strftime("%Y-%m-%d")
+        
+        # Convert string to datetime if needed
+        if isinstance(date, str):
+            date = datetime.strptime(date, "%Y-%m-%d")
+            
         month_year = date.strftime("%Y_%m")
         
-        # Check if table exists
-        self.cursor.execute(
-            """
-            SELECT name FROM sqlite_master
-            WHERE type='table' AND name=?
-            """,
-            (f"appointments_{month_year}",)
-        )
-        
-        if not self.cursor.fetchone():
-            # Create table if it doesn't exist
-            self._create_month_appointment_table(date)
+        self.connect()  # Ensure we have a connection
+        try:
+            # Check if table exists
+            self.cursor.execute(
+                """
+                SELECT name FROM sqlite_master
+                WHERE type='table' AND name=?
+                """,
+                (f"appointments_{month_year}",)
+            )
+            
+            if not self.cursor.fetchone():
+                # Create table if it doesn't exist
+                self._create_month_appointment_table(date)
+        finally:
+            self.close()
 
     # Patient Management
     def add_patient(self, patient_data):
@@ -207,15 +225,75 @@ class DatabaseManager:
             self.close()
 
     # Appointment Management
-    def add_appointment(self, patient_id, appointment_date, appointment_time, notes=""):
-        """Add a new appointment"""
+    def is_timeslot_available(self, appointment_date, appointment_time, exclude_appointment_id=None):
+        """Check if a timeslot is available
+        Returns True if available, False if already booked
+        exclude_appointment_id: Optional ID to exclude from check (used when updating appointments)
+        """
         self.connect()
         try:
+            # Convert appointment_date to string if it's a datetime object
+            if isinstance(appointment_date, datetime):
+                appointment_date = appointment_date.strftime("%Y-%m-%d")
+            
+            # Get the month_year for the table name
             date_obj = datetime.strptime(appointment_date, "%Y-%m-%d")
             month_year = date_obj.strftime("%Y_%m")
             
+            # Ensure table exists
+            self.ensure_month_table_exists(date_obj)
+            
+            # Reconnect as ensure_month_table_exists closes the connection
+            self.connect()
+            
+            # Check for existing appointments at this time
+            query = f"""
+            SELECT id, status FROM appointments_{month_year}
+            WHERE appointment_date = ? 
+            AND appointment_time = ?
+            AND status != 'cancelled'
+            """
+            self.cursor.execute(query, (appointment_date, appointment_time))
+            existing = self.cursor.fetchall()
+            
+            # If no appointments found, timeslot is available
+            if not existing:
+                return True
+            
+            # If updating an existing appointment, exclude it from the check
+            if exclude_appointment_id:
+                return all(str(appt['id']) == str(exclude_appointment_id) for appt in existing)
+            
+            return False
+            
+        finally:
+            self.close()
+
+    def add_appointment(self, patient_id, appointment_date, appointment_time, notes=""):
+        """Add a new appointment"""
+        # Convert appointment_date to string if it's a datetime object
+        if isinstance(appointment_date, datetime):
+            appointment_date = appointment_date.strftime("%Y-%m-%d")
+        
+        # Convert string to datetime if needed
+        if isinstance(appointment_date, str):
+            date_obj = datetime.strptime(appointment_date, "%Y-%m-%d")
+        else:
+            date_obj = appointment_date
+            
+        month_year = date_obj.strftime("%Y_%m")
+        
+        self.connect()
+        try:
+            # First check if timeslot is available
+            if not self.is_timeslot_available(appointment_date, appointment_time):
+                raise ValueError("This timeslot is already booked. Please select another time.")
+            
             # Ensure table exists for this month
             self.ensure_month_table_exists(date_obj)
+            
+            # Reconnect as ensure_month_table_exists closes the connection
+            self.connect()
             
             query = f"""
             INSERT INTO appointments_{month_year} 
@@ -234,13 +312,29 @@ class DatabaseManager:
 
     def update_appointment(self, appointment_id, patient_id, appointment_date, appointment_time, notes="", status=None):
         """Update an existing appointment"""
+        # Convert appointment_date to string if it's a datetime object
+        if isinstance(appointment_date, datetime):
+            appointment_date = appointment_date.strftime("%Y-%m-%d")
+            
+        # Convert string to datetime if needed
+        if isinstance(appointment_date, str):
+            date_obj = datetime.strptime(appointment_date, "%Y-%m-%d")
+        else:
+            date_obj = appointment_date
+            
+        month_year = date_obj.strftime("%Y_%m")
+        
         self.connect()
         try:
-            date_obj = datetime.strptime(appointment_date, "%Y-%m-%d")
-            month_year = date_obj.strftime("%Y_%m")
+            # First check if timeslot is available (excluding this appointment)
+            if not self.is_timeslot_available(appointment_date, appointment_time, appointment_id):
+                raise ValueError("This timeslot is already booked. Please select another time.")
             
             # Ensure table exists for this month
             self.ensure_month_table_exists(date_obj)
+            
+            # Reconnect as ensure_month_table_exists closes the connection
+            self.connect()
             
             # Include status in update if provided
             if status:
@@ -283,13 +377,25 @@ class DatabaseManager:
 
     def get_appointments_by_date(self, date):
         """Get all appointments for a specific date"""
+        # Convert date to string if it's a datetime object
+        if isinstance(date, datetime):
+            date = date.strftime("%Y-%m-%d")
+            
+        # Convert string to datetime if needed
+        if isinstance(date, str):
+            date_obj = datetime.strptime(date, "%Y-%m-%d")
+        else:
+            date_obj = date
+            
+        month_year = date_obj.strftime("%Y_%m")
+        
         self.connect()
         try:
-            date_obj = datetime.strptime(date, "%Y-%m-%d")
-            month_year = date_obj.strftime("%Y_%m")
-            
             # Ensure table exists for this month
             self.ensure_month_table_exists(date_obj)
+            
+            # Reconnect as ensure_month_table_exists closes the connection
+            self.connect()
             
             query = f"""
             SELECT a.*, p.first_name || ' ' || p.last_name as patient_name
@@ -304,17 +410,23 @@ class DatabaseManager:
             self.close()
 
     def update_appointment_status(self, appointment_id, month_year, status, notes=""):
-        """Update appointment status and add to patient history if completed"""
+        """Update appointment status and add to session history if completed"""
         self.connect()
         try:
-            # Extract year and month from month_year
-            date_obj = datetime.strptime(month_year, "%Y-%m-%d")
-            table_month_year = date_obj.strftime("%Y_%m")
+            # Convert month_year to string if it's a datetime object
+            if isinstance(month_year, datetime):
+                table_month_year = month_year.strftime("%Y_%m")
+            else:
+                # Extract year and month from month_year string
+                date_obj = datetime.strptime(month_year, "%Y-%m-%d")
+                table_month_year = date_obj.strftime("%Y_%m")
             
             # Get current appointment details before update
             query = f"""
-            SELECT * FROM appointments_{table_month_year}
-            WHERE id = ?
+            SELECT a.*, p.first_name || ' ' || p.last_name as patient_name
+            FROM appointments_{table_month_year} a
+            JOIN patients p ON a.patient_id = p.id
+            WHERE a.id = ?
             """
             self.cursor.execute(query, (appointment_id,))
             current_appt = self.cursor.fetchone()
@@ -330,16 +442,44 @@ class DatabaseManager:
             """
             self.cursor.execute(query, (status.lower(), notes, appointment_id))
             
-            # Add to patient history if status is done or cancelled
-            if status.lower() in ['done', 'cancelled']:
-                history_notes = f"Status: {status.capitalize()}\n{notes}"
+            # Add to session history if status is done
+            if status.lower() == 'done':
+                # First check if a session already exists for this appointment
                 self.cursor.execute(
                     """
-                    INSERT INTO patient_history (patient_id, session_date, remarks)
-                    VALUES (?, ?, ?)
+                    SELECT id FROM session_history 
+                    WHERE patient_id = ? AND session_date = ?
                     """,
-                    (current_appt['patient_id'], current_appt['appointment_date'], history_notes)
+                    (current_appt['patient_id'], current_appt['appointment_date'])
                 )
+                
+                existing_session = self.cursor.fetchone()
+                
+                if not existing_session:
+                    # Split notes into treatment notes and follow-up instructions
+                    # Assuming notes might contain both, separated by a marker or format
+                    treatment_notes = notes
+                    follow_up = ""
+                    
+                    # If notes contain follow-up instructions (marked by "Follow-up:" or similar)
+                    if "follow-up:" in notes.lower():
+                        parts = notes.split("Follow-up:", 1)
+                        treatment_notes = parts[0].strip()
+                        follow_up = parts[1].strip() if len(parts) > 1 else ""
+                    
+                    self.cursor.execute(
+                        """
+                        INSERT INTO session_history 
+                        (patient_id, session_date, treatment_notes, follow_up_instructions)
+                        VALUES (?, ?, ?, ?)
+                        """,
+                        (
+                            current_appt['patient_id'],
+                            current_appt['appointment_date'],
+                            treatment_notes,
+                            follow_up
+                        )
+                    )
             
             self.conn.commit()
         finally:

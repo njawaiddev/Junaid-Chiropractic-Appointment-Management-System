@@ -56,7 +56,7 @@ def parse_date(date_str):
     except ValueError:
         return None
 
-def time_slots(start_hour=9, end_hour=17, interval=30):
+def time_slots(start_hour=9, end_hour=17, interval=15):
     """Generate time slots for appointments in 12-hour format"""
     slots = []
     current = datetime.strptime(f"{start_hour}:00", "%H:%M")
