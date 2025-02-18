@@ -36,21 +36,14 @@ jobs:
     - name: Build executable
       run: python build.py
       
-    - name: Download Portable Inno Setup
+    - name: Install Inno Setup
       run: |
-        $setupUrl = "https://files.jrsoftware.org/is/6/innosetup-6.2.2.zip"
-        $setupFile = "innosetup.zip"
-        
-        Write-Host "Downloading Portable Inno Setup..."
-        Invoke-WebRequest -Uri $setupUrl -OutFile $setupFile -TimeoutSec 30
-        
-        Write-Host "Extracting Inno Setup..."
-        Expand-Archive -Path $setupFile -DestinationPath "innosetup" -Force
+        choco install innosetup --no-progress -y
       shell: pwsh
       
     - name: Build installer
       run: |
-        .\innosetup\ISCC.exe installer.iss
+        & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer.iss
       shell: pwsh
       
     - name: Upload installer
