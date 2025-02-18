@@ -24,14 +24,12 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r build_requirements.txt
         
-    - name: Create assets directory
+    - name: Create assets directory and download icon
       run: |
         if (!(Test-Path -Path "assets")) {
             New-Item -ItemType Directory -Path "assets" -Force
         }
-        if (!(Test-Path -Path "assets/icon.ico")) {
-            Set-Content -Path "assets/icon.ico" -Value "Creating placeholder icon..."
-        }
+        Invoke-WebRequest -Uri "https://raw.githubusercontent.com/customtkinter/CustomTkinter/master/test/images/CustomTkinter_icon_Windows.ico" -OutFile "assets/icon.ico"
       shell: pwsh
         
     - name: Build executable
