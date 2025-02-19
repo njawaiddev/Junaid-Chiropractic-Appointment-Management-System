@@ -967,17 +967,17 @@ class PatientFrame(ctk.CTkFrame):
                         f"""
                         SELECT appointment_date, appointment_time, status, notes
                         FROM {table_name}
-                        WHERE patient_id = ? AND appointment_date < ?
+                        WHERE patient_id = ?
                         ORDER BY appointment_date DESC, appointment_time DESC
                         """,
-                        (self.patient_id, current_date)
+                        (self.patient_id,)
                     ).fetchall()
                     all_appointments.extend(appointments)
                 
                 # Sort all entries by date
                 all_entries = []
                 
-                # Add appointments
+                # Add all appointments (both past and future)
                 for appt in all_appointments:
                     # Find next appointment
                     next_appt = ""
@@ -986,12 +986,15 @@ class PatientFrame(ctk.CTkFrame):
                         next_time = format_time_12hr(future_appointments[0][1])
                         next_appt = f"{next_date} {next_time}"
                     
+                    # Format current appointment time
+                    current_time = format_time_12hr(appt[1])
+                    
                     entry = {
-                        'date': appt[0],
+                        'date': f"{appt[0]} {current_time}",
                         'type': 'Appointment',
-                        'status': appt[2],
+                        'status': appt[2] or 'pending',
                         'notes': appt[3] or '',
-                        'next_appointment': next_appt
+                        'next_appointment': next_appt if appt[0] < current_date else ''
                     }
                     all_entries.append(entry)
                 
