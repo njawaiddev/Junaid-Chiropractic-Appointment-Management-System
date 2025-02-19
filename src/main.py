@@ -111,8 +111,18 @@ class ChiropracticApp:
         min_height = min(768, int(screen_height * 0.6))
         self.root.minsize(min_width, min_height)
         
-        # Allow window to be maximized
-        self.root.state('zoomed')
+        # Platform-specific window state
+        if sys.platform == "win32":
+            # Windows - start maximized
+            self.root.state('zoomed')
+        elif sys.platform == "darwin":
+            # macOS - use fullscreen
+            self.root.attributes('-fullscreen', True)
+            # Add escape key binding to exit fullscreen
+            self.root.bind('<Escape>', lambda e: self.root.attributes('-fullscreen', False))
+        else:
+            # Linux and others - start with calculated size
+            pass
         
         # Configure grid weights for better expansion
         self.root.grid_columnconfigure(0, weight=1)
