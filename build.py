@@ -118,7 +118,7 @@ def create_inno_setup_script():
 #define MyAppExeName "ChiropracticManager.exe"
 
 [Setup]
-AppId={{{{{{app_guid}}}}}}
+AppId={{{{""" + app_guid + """}}}}
 AppName={{#MyAppName}}
 AppVersion={{#MyAppVersion}}
 AppPublisher={{#MyAppPublisher}}
