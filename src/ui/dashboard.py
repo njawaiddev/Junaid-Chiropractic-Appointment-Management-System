@@ -32,13 +32,28 @@ class DashboardFrame(ctk.CTkFrame):
         self.calendar = None
         self.search_var = None
         self.status_var = None
+        self.view_var = tk.StringVar(value="daily")  # Initialize view variable
         
         # Initialize Google Calendar
         self.gcal = None
-        self.try_init_gcal()
+        if self.try_init_gcal():
+            # Perform initial sync of today's appointments
+            self.after(1000, self.initial_sync)  # Schedule initial sync after 1 second
         
         self.setup_ui()
         
+    def initial_sync(self):
+        """Perform initial sync of appointments when app starts"""
+        try:
+            # Get today's appointments
+            today = datetime.now()
+            appointments = self.db.get_appointments_by_date(today.strftime("%Y-%m-%d"))
+            if appointments:
+                print(f"Performing initial sync of {len(appointments)} appointments...")
+                self.sync_with_google_calendar(appointments)
+        except Exception as e:
+            print(f"Error during initial sync: {str(e)}")
+
     def try_init_gcal(self):
         """Initialize Google Calendar if credentials exist"""
         try:
@@ -52,8 +67,10 @@ class DashboardFrame(ctk.CTkFrame):
                     self.gcal = GoogleCalendarManager()
                     if self.gcal.authenticate():
                         print("Successfully authenticated with Google Calendar")
+                        return True
                     else:
                         print("Failed to authenticate with Google Calendar")
+                        return False
             else:
                 # Create default config with auto-sync enabled
                 sync_config = {
@@ -66,11 +83,12 @@ class DashboardFrame(ctk.CTkFrame):
                     json.dump(sync_config, f)
                 
                 self.gcal = GoogleCalendarManager()
-                self.gcal.authenticate()
+                return self.gcal.authenticate()
                 
         except Exception as e:
             print(f"Google Calendar initialization failed: {str(e)}")
             self.gcal = None
+            return False
 
     def get_current_appointments(self):
         """Get appointments for the current selected date"""
@@ -83,39 +101,71 @@ class DashboardFrame(ctk.CTkFrame):
     def sync_with_google_calendar(self, appointments=None):
         """Sync appointments with Google Calendar"""
         if not self.gcal:
-            return
+            return False
             
         if not appointments:
             appointments = self.get_current_appointments()
             
         if not appointments:
-            return
+            return False
             
         try:
             # Initialize last sync times if not exists
             if not hasattr(self, '_last_sync_times'):
                 self._last_sync_times = {}
             
-            # Filter out recently synced appointments
+            # Filter out recently synced appointments that haven't changed
             current_time = datetime.now()
             appointments_to_sync = []
             for appt in appointments:
                 appt_id = str(appt['id'])
-                if appt_id not in self._last_sync_times or \
-                   (current_time - self._last_sync_times[appt_id]).total_seconds() >= 5:
+                should_sync = False
+                
+                # Check if appointment was recently synced
+                if appt_id not in self._last_sync_times:
+                    should_sync = True
+                else:
+                    last_sync = self._last_sync_times[appt_id]
+                    # Only sync if:
+                    # 1. It's been more than 5 minutes since last sync
+                    # 2. OR the appointment status has changed
+                    if (current_time - last_sync).total_seconds() >= 300:  # 5 minutes
+                        should_sync = True
+                    else:
+                        # Check if status has changed
+                        try:
+                            existing_appts = self.db.get_appointments_by_date(appt['appointment_date'])
+                            existing_appt = next((a for a in existing_appts if str(a['id']) == appt_id), None)
+                            if existing_appt and existing_appt.get('status') != appt.get('status'):
+                                should_sync = True
+                        except Exception:
+                            pass  # If we can't check status, don't sync
+                
+                if should_sync:
                     appointments_to_sync.append(appt)
                     self._last_sync_times[appt_id] = current_time
             
             if not appointments_to_sync:
-                return
+                return True  # Nothing to sync
             
             def sync_task():
                 try:
-                    # Perform sync
-                    if self.gcal.sync_appointments(appointments_to_sync):
-                        print(f"Successfully synced {len(appointments_to_sync)} appointments")
+                    # Perform sync in batches of 10
+                    batch_size = 10
+                    success = True
+                    for i in range(0, len(appointments_to_sync), batch_size):
+                        batch = appointments_to_sync[i:i + batch_size]
+                        if self.gcal.sync_appointments(batch):
+                            print(f"Successfully synced batch of {len(batch)} appointments")
+                        else:
+                            print(f"Failed to sync batch of {len(batch)} appointments")
+                            success = False
+                    
+                    if success:
+                        print(f"Successfully synced all {len(appointments_to_sync)} appointments")
                     else:
-                        print("Failed to sync appointments")
+                        print("Some appointments failed to sync")
+                    
                 except Exception as e:
                     print(f"Error in sync task: {str(e)}")
                     import traceback
@@ -123,11 +173,13 @@ class DashboardFrame(ctk.CTkFrame):
             
             # Schedule sync task
             self.after(100, sync_task)
+            return True
             
         except Exception as e:
             print(f"Error in sync_with_google_calendar: {str(e)}")
             import traceback
             traceback.print_exc()
+            return False
 
     def refresh_appointments(self, skip_sync=False):
         """Refresh appointments list"""
@@ -142,22 +194,26 @@ class DashboardFrame(ctk.CTkFrame):
             # 1. Not explicitly skipped
             # 2. We have appointments to sync
             # 3. Google Calendar is initialized
+            # 4. It's been at least 5 minutes since last full sync of this date
             if not skip_sync and appointments and self.gcal:
-                # Check if any appointments need syncing
+                date_key = self.selected_date.strftime("%Y-%m-%d")
                 current_time = datetime.now()
+                
+                # Initialize last full sync times if not exists
+                if not hasattr(self, '_last_full_sync_times'):
+                    self._last_full_sync_times = {}
+                
                 needs_sync = False
-                if not hasattr(self, '_last_sync_times'):
+                if date_key not in self._last_full_sync_times:
                     needs_sync = True
                 else:
-                    for appt in appointments:
-                        appt_id = str(appt['id'])
-                        if (appt_id not in self._last_sync_times or 
-                            (current_time - self._last_sync_times[appt_id]).total_seconds() >= 5):
-                            needs_sync = True
-                            break
+                    last_sync = self._last_full_sync_times[date_key]
+                    if (current_time - last_sync).total_seconds() >= 300:  # 5 minutes
+                        needs_sync = True
                 
                 if needs_sync:
-                    self.sync_with_google_calendar(appointments)
+                    if self.sync_with_google_calendar(appointments):
+                        self._last_full_sync_times[date_key] = current_time
         
         except Exception as e:
             print(f"Error refreshing appointments: {str(e)}")

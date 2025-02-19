@@ -15,6 +15,14 @@ from utils.colors import *
 DEVELOPER_NAME = "Naveed Jawaid"
 APP_NAME = "Junaid Chiropractic Management System"
 
+# Add macOS specific imports
+if sys.platform == "darwin":
+    try:
+        import objc
+        from Foundation import NSBundle
+    except ImportError:
+        pass
+
 class ChiropracticApp:
     def __init__(self):
         # Initialize the main window
@@ -74,6 +82,17 @@ class ChiropracticApp:
         
         # Schedule a keep-alive check
         self.root.after(1000, self._check_alive)
+        
+        # For macOS: Set up Info.plist
+        if sys.platform == "darwin":
+            try:
+                bundle = NSBundle.mainBundle()
+                info = bundle.infoDictionary()
+                if info:
+                    info['NSHighResolutionCapable'] = True
+                    info['LSUIElement'] = False  # Ensure dock icon is shown
+            except Exception as e:
+                print(f"Error configuring macOS bundle: {str(e)}")
     
     def _check_alive(self):
         """Periodic check to ensure window stays alive"""

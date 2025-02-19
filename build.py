@@ -15,20 +15,45 @@ def create_assets():
     # Create assets directory if it doesn't exist
     os.makedirs(assets_dir, exist_ok=True)
     
-    # Ensure logo exists and create icon
+    # Ensure logo exists and create icons
     logo_path = os.path.join("src", "assets", "logo.png")
     icon_path = os.path.join(assets_dir, "icon.ico")
+    icns_path = os.path.join(assets_dir, "icon.icns")
     
     if os.path.exists(logo_path):
         try:
             from PIL import Image
             img = Image.open(logo_path)
-            # Resize to standard icon sizes
+            
+            # Create .ico for Windows
             icon_sizes = [(16,16), (32,32), (48,48), (64,64), (128,128), (256,256)]
             img.save(icon_path, format='ICO', sizes=icon_sizes)
             print(f"Created icon file at: {icon_path}")
+            
+            # Create .icns for macOS
+            if sys.platform == "darwin":
+                # Create iconset directory
+                iconset_path = os.path.join(assets_dir, "icon.iconset")
+                os.makedirs(iconset_path, exist_ok=True)
+                
+                # Generate different sizes for macOS
+                sizes = [(16,16), (32,32), (64,64), (128,128), (256,256), (512,512), (1024,1024)]
+                for size in sizes:
+                    resized = img.resize(size, Image.Resampling.LANCZOS)
+                    resized.save(os.path.join(iconset_path, f"icon_{size[0]}x{size[0]}.png"))
+                    if size[0] <= 512:  # Also create @2x versions up to 512px
+                        resized_2x = img.resize((size[0]*2, size[0]*2), Image.Resampling.LANCZOS)
+                        resized_2x.save(os.path.join(iconset_path, f"icon_{size[0]}x{size[0]}@2x.png"))
+                
+                # Convert iconset to icns using iconutil
+                os.system(f"iconutil -c icns {iconset_path}")
+                print(f"Created icns file at: {icns_path}")
+                
+                # Clean up iconset directory
+                shutil.rmtree(iconset_path)
+                
         except Exception as e:
-            print(f"Error creating icon: {str(e)}")
+            print(f"Error creating icons: {str(e)}")
 
 def collect_data_files():
     """Collect all necessary data files"""
@@ -45,6 +70,12 @@ def collect_data_files():
     if os.path.exists(src_dir):
         data_files.append((src_dir, 'src'))
     
+    # Add Info.plist for macOS
+    if sys.platform == "darwin":
+        info_plist = os.path.join(script_dir, "Info.plist")
+        if os.path.exists(info_plist):
+            data_files.append((info_plist, '.'))
+    
     return data_files
 
 def build_exe():
@@ -58,6 +89,7 @@ def build_exe():
     # Set the paths
     main_script = os.path.join(script_dir, "src", "main.py")
     icon_path = os.path.join(script_dir, "assets", "icon.ico")
+    icns_path = os.path.join(script_dir, "assets", "icon.icns")
     dist_path = os.path.join(script_dir, "dist")
     build_path = os.path.join(script_dir, "build")
     
@@ -82,12 +114,18 @@ def build_exe():
         f"--specpath={build_path}",
     ]
     
-    # Add icon if available
-    if os.path.exists(icon_path):
-        args.append(f"--icon={icon_path}")
-        print(f"Using icon: {icon_path}")
+    # Add platform-specific arguments
+    if sys.platform == "darwin":
+        args.extend([
+            f"--icon={icns_path}",
+            "--target-arch=arm64",  # Target current architecture only
+            "--codesign-identity=-",
+            "--osx-bundle-identifier=com.naveedjawaid.chiropracticmanager",
+            "--runtime-hook=src/utils/macos_runtime.py"  # Add runtime hook for macOS
+        ])
     else:
-        print("Warning: No icon file found")
+        if os.path.exists(icon_path):
+            args.append(f"--icon={icon_path}")
     
     # Add data files
     for src, dst in data_files:
@@ -100,6 +138,13 @@ def build_exe():
         "tkcalendar",
         "babel.numbers",
         "customtkinter",
+        "Foundation",  # For macOS
+        "objc",        # For macOS
+        "AppKit",      # For macOS
+        "PyObjCTools", # For macOS
+        "darkdetect",  # For macOS theme detection
+        "google_auth_oauthlib",
+        "google.auth.transport.requests"
     ]
     for imp in hidden_imports:
         args.append(f"--hidden-import={imp}")
@@ -165,10 +210,10 @@ if __name__ == "__main__":
     # Build executable
     build_exe()
     
-    # Create Inno Setup script
-    create_inno_setup_script()
-    
-    print("\nNext steps:")
-    print("1. Install Inno Setup from: https://jrsoftware.org/isdl.php")
-    print("2. Compile installer.iss with Inno Setup to create the installer")
-    print("3. The installer will be created in the 'installer' directory") 
+    # Create Inno Setup script for Windows
+    if sys.platform == "win32":
+        create_inno_setup_script()
+        print("\nNext steps:")
+        print("1. Install Inno Setup from: https://jrsoftware.org/isdl.php")
+        print("2. Compile installer.iss with Inno Setup to create the installer")
+        print("3. The installer will be created in the 'installer' directory") 
