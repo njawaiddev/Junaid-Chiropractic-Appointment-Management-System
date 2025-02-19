@@ -3,6 +3,7 @@ import sys
 import os
 import shutil
 from pathlib import Path
+import uuid
 
 DEVELOPER_NAME = "Naveed Jawaid"
 
@@ -106,6 +107,9 @@ def create_inno_setup_script():
     script_dir = os.path.dirname(os.path.abspath(__file__))
     inno_script = os.path.join(script_dir, "installer.iss")
     
+    # Generate a unique GUID for the installer
+    app_guid = str(uuid.uuid4())
+    
     script_content = f"""
 #define MyAppName "Chiropractic Manager"
 #define MyAppVersion "1.0"
@@ -114,7 +118,7 @@ def create_inno_setup_script():
 #define MyAppExeName "ChiropracticManager.exe"
 
 [Setup]
-AppId={{YOUR-GUID-HERE}}
+AppId={{{app_guid}}}
 AppName={{#MyAppName}}
 AppVersion={{#MyAppVersion}}
 AppPublisher={{#MyAppPublisher}}
