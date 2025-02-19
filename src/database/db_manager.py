@@ -9,7 +9,6 @@ from .schema import (
     CREATE_SESSION_HISTORY_TABLE,
     CREATE_PATIENT_NAME_INDEX,
     CREATE_PATIENT_PHONE_INDEX,
-    CREATE_PATIENT_DOB_INDEX,
     CREATE_SESSION_DATE_INDEX,
     CREATE_SESSION_PATIENT_INDEX,
     CREATE_APPOINTMENT_DATE_INDEX,
@@ -69,7 +68,6 @@ class DatabaseManager:
             # Create indices
             self.cursor.execute(CREATE_PATIENT_NAME_INDEX)
             self.cursor.execute(CREATE_PATIENT_PHONE_INDEX)
-            self.cursor.execute(CREATE_PATIENT_DOB_INDEX)
             self.cursor.execute(CREATE_SESSION_DATE_INDEX)
             self.cursor.execute(CREATE_SESSION_PATIENT_INDEX)
             

@@ -83,11 +83,6 @@ CREATE INDEX IF NOT EXISTS idx_patient_phone
 ON patients (phone);
 """
 
-CREATE_PATIENT_DOB_INDEX = """
-CREATE INDEX IF NOT EXISTS idx_patient_dob
-ON patients (date_of_birth);
-"""
-
 # Create a table for session history
 CREATE_SESSION_HISTORY_TABLE = """
 CREATE TABLE IF NOT EXISTS session_history (
