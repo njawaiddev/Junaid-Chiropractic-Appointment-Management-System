@@ -6,7 +6,9 @@ from utils.helpers import (
     validate_phone_number,
     validate_age,
     validate_name,
-    format_phone_number
+    format_phone_number,
+    format_time,
+    format_time_12hr
 )
 from utils.colors import *
 
@@ -902,45 +904,28 @@ class PatientFrame(ctk.CTkFrame):
     
     def refresh_session_history(self, sessions):
         """Refresh the session history tree with both appointments and session history"""
-        # Clear existing items
-        for item in self.session_tree.get_children():
-            self.session_tree.delete(item)
-        
         try:
-            # Get patient ID from the selected patient
-            selected = self.patient_tree.selection()
-            if not selected:
+            # Clear existing items
+            for item in self.session_tree.get_children():
+                self.session_tree.delete(item)
+            
+            # Get patient ID
+            patient_id = self.patient_id
+            if not patient_id:
                 return
             
-            patient_id = int(self.patient_tree.item(selected[0])["tags"][0])
-            
-            # Get all appointments for this patient from all monthly tables
-            all_appointments = []
-            
-            # Connect to database
+            # Get all appointment tables
             self.db.connect()
-            
             try:
-                # First, get all appointments to create a lookup for next appointments
                 tables = self.db.cursor.execute(
                     "SELECT name FROM sqlite_master WHERE type='table' AND name LIKE 'appointments_%'"
                 ).fetchall()
                 
-                # Get all future appointments for this patient
-                future_appointments = []
-                for table in tables:
-                    table_name = table[0]
-                    appointments = self.db.cursor.execute(
-                        f"""
-                        SELECT appointment_date, appointment_time, status, notes
-                        FROM {table_name}
-                        WHERE patient_id = ? AND status = 'pending'
-                        AND appointment_date >= CURRENT_DATE
-                        ORDER BY appointment_date, appointment_time
-                        """,
-                        (patient_id,)
-                    ).fetchall()
-                    future_appointments.extend(appointments)
+                # Get future appointments
+                future_appointments = self.db.get_future_appointments(patient_id)
+                
+                # Initialize list for all appointments
+                all_appointments = []
                 
                 # Get all past appointments
                 for table in tables:
@@ -955,7 +940,6 @@ class PatientFrame(ctk.CTkFrame):
                     ).fetchall()
                     all_appointments.extend(appointments)
             finally:
-                # Always close the connection
                 self.db.close()
             
             # Sort all entries by date
@@ -967,13 +951,7 @@ class PatientFrame(ctk.CTkFrame):
                 next_appt = ""
                 if future_appointments:
                     next_date = future_appointments[0][0]
-                    next_time = future_appointments[0][1]
-                    # Convert time from 24h to 12h format
-                    try:
-                        time_obj = datetime.strptime(next_time, "%H:%M")
-                        next_time = time_obj.strftime("%I:%M %p")
-                    except ValueError:
-                        pass
+                    next_time = format_time_12hr(future_appointments[0][1])
                     next_appt = f"{next_date} {next_time}"
                 
                 entry = {
@@ -991,13 +969,7 @@ class PatientFrame(ctk.CTkFrame):
                 next_appt = ""
                 if future_appointments:
                     next_date = future_appointments[0][0]
-                    next_time = future_appointments[0][1]
-                    # Convert time from 24h to 12h format
-                    try:
-                        time_obj = datetime.strptime(next_time, "%H:%M")
-                        next_time = time_obj.strftime("%I:%M %p")
-                    except ValueError:
-                        pass
+                    next_time = format_time_12hr(future_appointments[0][1])
                     next_appt = f"{next_date} {next_time}"
                 
                 entry = {

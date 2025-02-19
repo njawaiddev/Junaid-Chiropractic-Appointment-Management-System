@@ -18,15 +18,44 @@ def validate_name(name):
 def format_time(time_str):
     """Format time string to HH:MM format"""
     try:
+        # Handle empty or None input
+        if not time_str:
+            return None
+            
+        # Remove any leading/trailing whitespace
+        time_str = time_str.strip()
+        
         # Check if time is in 12-hour format
         if "AM" in time_str.upper() or "PM" in time_str.upper():
             # Parse 12-hour format
-            time_obj = datetime.strptime(time_str, "%I:%M %p")
-            # Return in 24-hour format for database
-            return time_obj.strftime("%H:%M")
+            time_obj = datetime.strptime(time_str.upper(), "%I:%M %p")
         else:
             # Parse 24-hour format
-            return datetime.strptime(time_str, "%H:%M").strftime("%H:%M")
+            time_obj = datetime.strptime(time_str, "%H:%M")
+            
+        # Return in 24-hour format for database
+        return time_obj.strftime("%H:%M")
+    except ValueError:
+        return None
+
+def format_time_12hr(time_str):
+    """Convert time string to 12-hour format"""
+    try:
+        # Handle empty or None input
+        if not time_str:
+            return None
+            
+        # Remove any leading/trailing whitespace
+        time_str = time_str.strip()
+        
+        # Parse time string (handles both 12h and 24h formats)
+        if "AM" in time_str.upper() or "PM" in time_str.upper():
+            time_obj = datetime.strptime(time_str.upper(), "%I:%M %p")
+        else:
+            time_obj = datetime.strptime(time_str, "%H:%M")
+            
+        # Convert to 12-hour format
+        return time_obj.strftime("%I:%M %p").lstrip("0")
     except ValueError:
         return None
 
@@ -59,14 +88,26 @@ def parse_date(date_str):
 def time_slots(start_hour=9, end_hour=17, interval=15):
     """Generate time slots for appointments in 12-hour format"""
     slots = []
-    current = datetime.strptime(f"{start_hour}:00", "%H:%M")
-    end = datetime.strptime(f"{end_hour}:00", "%H:%M")
-    
-    while current <= end:
-        # Convert to 12-hour format with AM/PM
-        time_12hr = current.strftime("%I:%M %p").lstrip("0")
-        slots.append(time_12hr)
-        current += timedelta(minutes=interval)
+    try:
+        current = datetime.strptime(f"{start_hour:02d}:00", "%H:%M")
+        end = datetime.strptime(f"{end_hour:02d}:00", "%H:%M")
+        
+        while current <= end:
+            # Convert to 12-hour format with AM/PM
+            time_12hr = current.strftime("%I:%M %p").lstrip("0")
+            slots.append(time_12hr)
+            current += timedelta(minutes=interval)
+    except ValueError:
+        # Return default business hours if there's an error
+        slots = ["9:00 AM", "9:15 AM", "9:30 AM", "9:45 AM",
+                "10:00 AM", "10:15 AM", "10:30 AM", "10:45 AM",
+                "11:00 AM", "11:15 AM", "11:30 AM", "11:45 AM",
+                "12:00 PM", "12:15 PM", "12:30 PM", "12:45 PM",
+                "1:00 PM", "1:15 PM", "1:30 PM", "1:45 PM",
+                "2:00 PM", "2:15 PM", "2:30 PM", "2:45 PM",
+                "3:00 PM", "3:15 PM", "3:30 PM", "3:45 PM",
+                "4:00 PM", "4:15 PM", "4:30 PM", "4:45 PM",
+                "5:00 PM"]
     
     return slots
 

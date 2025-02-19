@@ -7,7 +7,9 @@ from utils.helpers import (
     format_date,
     parse_date,
     time_slots,
-    get_week_dates
+    get_week_dates,
+    format_time,
+    format_time_12hr
 )
 from utils.colors import *
 import calendar
@@ -536,7 +538,7 @@ class DashboardFrame(ctk.CTkFrame):
         self.refresh_appointments()
         
     def refresh_appointments(self):
-        """Refresh appointments list"""
+        """Refresh the appointments list"""
         try:
             # Clear existing items
             for item in self.tree.get_children():
@@ -565,8 +567,7 @@ class DashboardFrame(ctk.CTkFrame):
                 # Insert appointments
                 for appt in appts:
                     # Convert time to 12-hour format
-                    time_24h = datetime.strptime(appt['appointment_time'], "%H:%M")
-                    time_12h = time_24h.strftime("%I:%M %p").lstrip("0")
+                    time_12h = format_time_12hr(appt['appointment_time'])
                     
                     # Get status color
                     status = appt['status'].lower() if appt['status'] else 'pending'
@@ -582,7 +583,7 @@ class DashboardFrame(ctk.CTkFrame):
                             appt['notes'],
                             "View Notes" if appt['notes'] else ""
                         ),
-                        tags=(str(appt['id']), status)  # Include appointment ID in tags
+                        tags=(str(appt['id']), status)
                     )
             
             # If no appointments, show message
