@@ -11,6 +11,8 @@ jobs:
   build:
     runs-on: windows-latest
     timeout-minutes: 15  # Add overall timeout
+    env:
+      DEVELOPER_NAME: "Naveed Jawaid"
     
     steps:
     - uses: actions/checkout@v3
@@ -25,12 +27,14 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r build_requirements.txt
         
-    - name: Create assets directory and icon
+    - name: Create assets directory
       run: |
         if (!(Test-Path -Path "assets")) {
             New-Item -ItemType Directory -Path "assets" -Force
         }
-        python -c "from PIL import Image; img = Image.new('RGB', (256, 256), color='blue'); img.save('assets/icon.ico', format='ICO')"
+        Copy-Item "src/assets/logo.png" -Destination "assets/logo.png" -Force
+        # Convert logo to ico format for Windows
+        python -c "from PIL import Image; img = Image.open('assets/logo.png'); img.save('assets/icon.ico', format='ICO')"
       shell: pwsh
         
     - name: Build executable

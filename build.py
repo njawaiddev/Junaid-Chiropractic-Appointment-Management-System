@@ -4,6 +4,8 @@ import os
 import shutil
 from pathlib import Path
 
+DEVELOPER_NAME = "Naveed Jawaid"
+
 def create_assets():
     """Create necessary asset directories and files"""
     script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -12,11 +14,14 @@ def create_assets():
     # Create assets directory if it doesn't exist
     os.makedirs(assets_dir, exist_ok=True)
     
-    # Create or update icon file
+    # Ensure logo exists
+    logo_path = os.path.join("src", "assets", "logo.png")
     icon_path = os.path.join(assets_dir, "icon.ico")
-    if not os.path.exists(icon_path):
-        # TODO: Add your icon file here
-        print("Please add an icon.ico file to the assets directory")
+    
+    if not os.path.exists(icon_path) and os.path.exists(logo_path):
+        from PIL import Image
+        img = Image.open(logo_path)
+        img.save(icon_path, format='ICO')
 
 def collect_data_files():
     """Collect all necessary data files"""
@@ -101,23 +106,23 @@ def create_inno_setup_script():
     script_dir = os.path.dirname(os.path.abspath(__file__))
     inno_script = os.path.join(script_dir, "installer.iss")
     
-    script_content = """
+    script_content = f"""
 #define MyAppName "Chiropractic Manager"
 #define MyAppVersion "1.0"
-#define MyAppPublisher "Your Company Name"
-#define MyAppURL "https://www.yourwebsite.com"
+#define MyAppPublisher "{DEVELOPER_NAME}"
+#define MyAppURL "https://github.com/njawaiddev/Junaid-Chiropractic-Appointment-Management-System"
 #define MyAppExeName "ChiropracticManager.exe"
 
 [Setup]
 AppId={{YOUR-GUID-HERE}}
-AppName={#MyAppName}
-AppVersion={#MyAppVersion}
-AppPublisher={#MyAppPublisher}
-AppPublisherURL={#MyAppURL}
-AppSupportURL={#MyAppURL}
-AppUpdatesURL={#MyAppURL}
-DefaultDirName={autopf}\\{#MyAppName}
-DefaultGroupName={#MyAppName}
+AppName={{#MyAppName}}
+AppVersion={{#MyAppVersion}}
+AppPublisher={{#MyAppPublisher}}
+AppPublisherURL={{#MyAppURL}}
+AppSupportURL={{#MyAppURL}}
+AppUpdatesURL={{#MyAppURL}}
+DefaultDirName={{autopf}}\\{{#MyAppName}}
+DefaultGroupName={{#MyAppName}}
 AllowNoIcons=yes
 LicenseFile=LICENSE.txt
 OutputDir=installer
@@ -131,22 +136,22 @@ WizardStyle=modern
 Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Tasks]
-Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
-Name: "quicklaunchicon"; Description: "{cm:CreateQuickLaunchIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked; OnlyBelowVersion: 6.1; Check: not IsAdminInstallMode
+Name: "desktopicon"; Description: "{{cm:CreateDesktopIcon}}"; GroupDescription: "{{cm:AdditionalIcons}}"; Flags: unchecked
+Name: "quicklaunchicon"; Description: "{{cm:CreateQuickLaunchIcon}}"; GroupDescription: "{{cm:AdditionalIcons}}"; Flags: unchecked; OnlyBelowVersion: 6.1; Check: not IsAdminInstallMode
 
 [Files]
-Source: "dist\\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
-Source: "assets\\*"; DestDir: "{app}\\assets"; Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "LICENSE.txt"; DestDir: "{app}"; Flags: ignoreversion
+Source: "dist\\{{#MyAppExeName}}"; DestDir: "{{app}}"; Flags: ignoreversion
+Source: "assets\\*"; DestDir: "{{app}}\\assets"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "LICENSE.txt"; DestDir: "{{app}}"; Flags: ignoreversion
 
 [Icons]
-Name: "{group}\\{#MyAppName}"; Filename: "{app}\\{#MyAppExeName}"
-Name: "{group}\\{cm:UninstallProgram,{#MyAppName}}"; Filename: "{uninstallexe}"
-Name: "{autodesktop}\\{#MyAppName}"; Filename: "{app}\\{#MyAppExeName}"; Tasks: desktopicon
-Name: "{userappdata}\\Microsoft\\Internet Explorer\\Quick Launch\\{#MyAppName}"; Filename: "{app}\\{#MyAppExeName}"; Tasks: quicklaunchicon
+Name: "{{group}}\\{{#MyAppName}}"; Filename: "{{app}}\\{{#MyAppExeName}}"
+Name: "{{group}}\\{{cm:UninstallProgram,{{#MyAppName}}}}"; Filename: "{{uninstallexe}}"
+Name: "{{autodesktop}}\\{{#MyAppName}}"; Filename: "{{app}}\\{{#MyAppExeName}}"; Tasks: desktopicon
+Name: "{{userappdata}}\\Microsoft\\Internet Explorer\\Quick Launch\\{{#MyAppName}}"; Filename: "{{app}}\\{{#MyAppExeName}}"; Tasks: quicklaunchicon
 
 [Run]
-Filename: "{app}\\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent
+Filename: "{{app}}\\{{#MyAppExeName}}"; Description: "{{cm:LaunchProgram,{{#StringChange(MyAppName, '&', '&&')}}}}"; Flags: nowait postinstall skipifsilent
 """
     
     with open(inno_script, "w") as f:

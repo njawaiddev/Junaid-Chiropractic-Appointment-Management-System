@@ -1,7 +1,9 @@
 import customtkinter as ctk
-from tkinter import ttk
+from tkinter import ttk, PhotoImage
 from pathlib import Path
 import sys
+import os
+from PIL import Image, ImageTk
 from ui.dashboard import DashboardFrame
 from ui.patient_view import PatientFrame
 from ui.settings import SettingsFrame
@@ -10,11 +12,17 @@ from database.db_manager import DatabaseManager
 from utils.backup_scheduler import BackupScheduler
 from utils.colors import *
 
+DEVELOPER_NAME = "Naveed Jawaid"
+APP_NAME = "Junaid Chiropractic Management System"
+
 class ChiropracticApp:
     def __init__(self):
         self.root = ctk.CTk()
-        self.root.title("Junaid Chiropractic Management System")
+        self.root.title(f"{APP_NAME} - Developed by {DEVELOPER_NAME}")
         self.setup_window()
+        
+        # Load logo
+        self.load_logo()
         
         # Initialize database
         self.db = DatabaseManager()
@@ -32,6 +40,23 @@ class ChiropracticApp:
         # Bind cleanup on window close
         self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
         
+    def load_logo(self):
+        """Load and set application logo"""
+        try:
+            script_dir = os.path.dirname(os.path.abspath(__file__))
+            logo_path = os.path.join(script_dir, "assets", "logo.png")
+            if os.path.exists(logo_path):
+                # Load and resize logo
+                logo_image = Image.open(logo_path)
+                # Resize to a reasonable icon size (e.g., 64x64)
+                logo_image.thumbnail((64, 64))
+                # Convert to PhotoImage
+                self.logo_photo = ImageTk.PhotoImage(logo_image)
+                # Set as window icon
+                self.root.iconphoto(True, self.logo_photo)
+        except Exception as e:
+            print(f"Error loading logo: {str(e)}")
+
     def setup_appearance(self):
         """Configure application appearance"""
         # Set light mode

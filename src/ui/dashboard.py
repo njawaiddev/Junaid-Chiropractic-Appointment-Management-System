@@ -583,7 +583,7 @@ class DashboardFrame(ctk.CTkFrame):
                             appt['notes'],
                             "View Notes" if appt['notes'] else ""
                         ),
-                        tags=(str(appt['id']), status)
+                        tags=(str(appt['id']), status)  # Add appointment ID as first tag
                     )
             
             # If no appointments, show message
@@ -652,12 +652,12 @@ class DashboardFrame(ctk.CTkFrame):
             values = self.tree.item(item)["values"]
             tags = self.tree.item(item)["tags"]
             
-            # The first tag should be the appointment ID
-            if not tags or tags[0] == 'message':
+            # Skip if this is a message row or pending tag
+            if not tags or tags[0] == 'message' or tags[0] == 'pending':
                 messagebox.showwarning("Invalid Selection", "Please select a valid appointment to edit.")
                 return
                 
-            appointment_id = tags[0]  # Get the appointment ID from the first tag
+            appointment_id = int(tags[0])  # Convert to integer
             
             # Get the appointment details from the database
             date_obj = datetime.strptime(self.selected_date.strftime("%Y-%m-%d"), "%Y-%m-%d")
@@ -667,7 +667,7 @@ class DashboardFrame(ctk.CTkFrame):
             try:
                 # Get full appointment details
                 query = f"""
-                SELECT a.*, p.first_name || ' ' || p.last_name as patient_name
+                SELECT a.*, p.first_name || ' ' || p.last_name as patient_name, p.id as patient_id
                 FROM appointments_{month_year} a
                 JOIN patients p ON a.patient_id = p.id
                 WHERE a.id = ?
@@ -675,14 +675,14 @@ class DashboardFrame(ctk.CTkFrame):
                 appointment = self.db.cursor.execute(query, (appointment_id,)).fetchone()
                 
                 if not appointment:
-                    raise ValueError("Appointment not found")
+                    raise ValueError(f"Appointment with ID {appointment_id} not found")
                 
                 # Convert appointment to dictionary if it's a sqlite3.Row
                 appointment_dict = dict(appointment)
                 
                 # Create initial values dictionary
                 initial_values = {
-                    'id': appointment_id,
+                    'id': appointment_id,  # Use the integer appointment ID
                     'patient_id': appointment_dict['patient_id'],
                     'patient_name': appointment_dict['patient_name'],
                     'date': appointment_dict['appointment_date'],
@@ -695,7 +695,7 @@ class DashboardFrame(ctk.CTkFrame):
                 dialog = AppointmentDialog(
                     self,
                     self.db,
-                    appointment_dict['appointment_date'],
+                    self.selected_date,
                     edit_mode=True,
                     initial_values=initial_values
                 )
@@ -1195,8 +1195,8 @@ class AppointmentDialog(ctk.CTkToplevel):
             patient_id = None
             if hasattr(self, 'selected_patient_id'):
                 patient_id = self.selected_patient_id
-            elif hasattr(self, 'patient_id'):
-                patient_id = self.patient_id
+            elif hasattr(self, 'initial_values') and self.initial_values.get('patient_id'):
+                patient_id = self.initial_values['patient_id']
             
             # If no patient ID stored, try to get it from the database
             if not patient_id:
@@ -1215,12 +1215,13 @@ class AppointmentDialog(ctk.CTkToplevel):
                 raise ValueError("No patient selected or patient not found")
             
             # Save to database
-            if hasattr(self, 'appointment_id') and self.appointment_id:
+            if self.edit_mode and hasattr(self, 'initial_values') and self.initial_values.get('id'):
                 # Update existing appointment
+                appointment_id = int(self.initial_values['id'])  # Ensure ID is an integer
                 self.db.update_appointment(
-                    self.appointment_id,
+                    appointment_id,
                     patient_id,
-                    selected_date,  # Use selected date instead of self.date
+                    selected_date,
                     time_24h,
                     notes,
                     status
@@ -1230,11 +1231,11 @@ class AppointmentDialog(ctk.CTkToplevel):
                 # Create new appointment
                 self.db.add_appointment(
                     patient_id,
-                    selected_date,  # Use selected date instead of self.date
+                    selected_date,
                     time_24h,
                     notes
                 )
-                messagebox.showinfo("Success", "Appointment created successfully")
+                messagebox.showinfo("Success", "Appointment added successfully")
             
             # Close dialog
             self.destroy()

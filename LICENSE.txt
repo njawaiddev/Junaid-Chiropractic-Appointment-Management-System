@@ -1,6 +1,6 @@
 Chiropractic Manager Software License Agreement
 
-Copyright (c) 2024 Your Company Name
+Copyright (c) 2024 Naveed Jawaid
 
 Permission is hereby granted to use this software according to the terms and conditions specified during installation.
 

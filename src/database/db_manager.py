@@ -618,4 +618,45 @@ class DatabaseManager:
             
             return latest_date
         finally:
+            self.close()
+
+    def get_future_appointments(self, patient_id):
+        """Get future appointments for a patient"""
+        try:
+            self.connect()
+            future_appointments = []
+            current_date = datetime.now().strftime("%Y-%m-%d")
+            
+            # Get all appointment tables
+            tables = self.cursor.execute(
+                "SELECT name FROM sqlite_master WHERE type='table' AND name LIKE 'appointments_%'"
+            ).fetchall()
+            
+            # Check each table for future appointments
+            for table in tables:
+                table_name = table[0]
+                query = f"""
+                SELECT appointment_date, appointment_time
+                FROM {table_name}
+                WHERE patient_id = ?
+                AND appointment_date >= ?
+                AND status != 'cancelled'
+                ORDER BY appointment_date, appointment_time
+                """
+                
+                appointments = self.cursor.execute(
+                    query,
+                    (patient_id, current_date)
+                ).fetchall()
+                
+                future_appointments.extend(appointments)
+            
+            # Sort all appointments by date and time
+            future_appointments.sort(key=lambda x: (x[0], x[1]))
+            return future_appointments
+            
+        except Exception as e:
+            print(f"Error getting future appointments: {str(e)}")
+            return []
+        finally:
             self.close() 

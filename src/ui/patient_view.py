@@ -17,6 +17,7 @@ class PatientFrame(ctk.CTkFrame):
         super().__init__(parent)
         self.db = db
         self.refresh_callback = refresh_callback
+        self.patient_id = None  # Initialize patient_id
         
         # Configure grid
         self.grid_columnconfigure(1, weight=1)
@@ -622,6 +623,8 @@ class PatientFrame(ctk.CTkFrame):
         self.session_tree.tag_configure('done', foreground=SUCCESS_GREEN)
         self.session_tree.tag_configure('pending', foreground=WARNING_AMBER)
         self.session_tree.tag_configure('cancelled', foreground=ERROR_RED)
+        self.session_tree.tag_configure('info', foreground=TEXT_SECONDARY)
+        self.session_tree.tag_configure('error', foreground=ERROR_RED)
     
     def create_field_frame(self, parent, label_text):
         """Create a frame for a field with label"""
@@ -710,54 +713,79 @@ class PatientFrame(ctk.CTkFrame):
             messagebox.showerror("Error", "Phone number must be between 10 and 15 digits")
             return
         
-        # Collect all field values
-        patient_data = {
-            'title': self.title_var.get(),
-            'first_name': self.first_name_var.get().strip(),
-            'last_name': self.last_name_var.get().strip(),
-            'gender': self.gender_var.get(),
-            'age': int(self.age_var.get().strip()),
-            'phone': self.phone_var.get().strip(),
-            'email': self.email_var.get().strip(),
-            'address_street': self.street_var.get().strip(),
-            'address_city': self.city_var.get().strip(),
-            'address_state': self.state_var.get().strip(),
-            'address_zip': self.zip_var.get().strip(),
-            'emergency_contact_name': self.emergency_name_entry.get().strip(),
-            'emergency_contact_phone': self.emergency_phone_var.get().strip(),
-            'emergency_contact_relation': self.emergency_relation_entry.get().strip(),
-            'reference_source': self.reference_entry.get().strip(),
-            'medical_conditions': self.conditions_text.get("1.0", "end-1c"),
-            'past_surgeries': self.surgeries_text.get("1.0", "end-1c"),
-            'current_medications': self.medications_text.get("1.0", "end-1c"),
-            'allergies': self.allergies_text.get("1.0", "end-1c"),
-            'chiropractic_history': self.history_text.get("1.0", "end-1c"),
-            'insurance_provider': self.insurance_provider_entry.get().strip(),
-            'insurance_policy_number': self.policy_number_entry.get().strip(),
-            'insurance_coverage_details': self.coverage_text.get("1.0", "end-1c")
-        }
-        
-        # Remove empty values
-        patient_data = {k: v for k, v in patient_data.items() if v}
-        
         try:
+            # Start transaction
+            self.db.connect()
+            
+            # Collect all field values
+            patient_data = {
+                'title': self.title_var.get(),
+                'first_name': self.first_name_var.get().strip(),
+                'last_name': self.last_name_var.get().strip(),
+                'gender': self.gender_var.get(),
+                'age': int(self.age_var.get().strip()),
+                'phone': self.phone_var.get().strip(),
+                'email': self.email_var.get().strip(),
+                'address_street': self.street_var.get().strip(),
+                'address_city': self.city_var.get().strip(),
+                'address_state': self.state_var.get().strip(),
+                'address_zip': self.zip_var.get().strip(),
+                'emergency_contact_name': self.emergency_name_entry.get().strip(),
+                'emergency_contact_phone': self.emergency_phone_var.get().strip(),
+                'emergency_contact_relation': self.emergency_relation_entry.get().strip(),
+                'reference_source': self.reference_entry.get().strip(),
+                'medical_conditions': self.conditions_text.get("1.0", "end-1c"),
+                'past_surgeries': self.surgeries_text.get("1.0", "end-1c"),
+                'current_medications': self.medications_text.get("1.0", "end-1c"),
+                'allergies': self.allergies_text.get("1.0", "end-1c"),
+                'chiropractic_history': self.history_text.get("1.0", "end-1c"),
+                'insurance_provider': self.insurance_provider_entry.get().strip(),
+                'insurance_policy_number': self.policy_number_entry.get().strip(),
+                'insurance_coverage_details': self.coverage_text.get("1.0", "end-1c")
+            }
+            
+            # Remove empty values
+            patient_data = {k: v for k, v in patient_data.items() if v}
+            
             selected = self.patient_tree.selection()
             if selected:
                 # Update existing patient
                 patient_id = int(self.patient_tree.item(selected[0])["tags"][0])
                 self.db.update_patient(patient_id, patient_data)
+                
+                # Refresh session history for the updated patient
+                patient = self.db.get_patient(patient_id)
+                self.refresh_session_history(patient.get('session_history', []))
+                
                 messagebox.showinfo("Success", "Patient updated successfully")
             else:
                 # Add new patient
-                self.db.add_patient(patient_data)
+                new_patient_id = self.db.add_patient(patient_data)
+                
+                # Refresh session history for the new patient
+                patient = self.db.get_patient(new_patient_id)
+                self.refresh_session_history(patient.get('session_history', []))
+                
                 messagebox.showinfo("Success", "Patient added successfully")
             
-            # Refresh list
-            self.refresh_patient_list()
-            self.refresh_callback()
+            # Commit transaction
+            self.db.conn.commit()
+            
+            # Refresh UI components
+            self.refresh_patient_list()  # Refresh patient list
+            self.refresh_callback()      # Refresh dashboard appointments
             
         except Exception as e:
+            # Rollback transaction on error
+            if self.db.conn:
+                self.db.conn.rollback()
             messagebox.showerror("Error", f"Failed to save patient: {str(e)}")
+            print(f"Error saving patient: {str(e)}")
+            import traceback
+            traceback.print_exc()
+        finally:
+            # Ensure connection is closed
+            self.db.close()
     
     def validate_mandatory_fields(self):
         """Validate all mandatory fields"""
@@ -909,10 +937,17 @@ class PatientFrame(ctk.CTkFrame):
             for item in self.session_tree.get_children():
                 self.session_tree.delete(item)
             
-            # Get patient ID
-            patient_id = self.patient_id
-            if not patient_id:
+            # Get patient ID from selection
+            selected = self.patient_tree.selection()
+            if not selected:
                 return
+                
+            self.patient_id = int(self.patient_tree.item(selected[0])["tags"][0])
+            if not self.patient_id:
+                return
+
+            # Get future appointments
+            future_appointments = self.db.get_future_appointments(self.patient_id)
             
             # Get all appointment tables
             self.db.connect()
@@ -921,88 +956,105 @@ class PatientFrame(ctk.CTkFrame):
                     "SELECT name FROM sqlite_master WHERE type='table' AND name LIKE 'appointments_%'"
                 ).fetchall()
                 
-                # Get future appointments
-                future_appointments = self.db.get_future_appointments(patient_id)
-                
-                # Initialize list for all appointments
-                all_appointments = []
-                
                 # Get all past appointments
+                all_appointments = []
+                current_date = datetime.now().strftime("%Y-%m-%d")
+                
+                # Check each appointments table for past appointments
                 for table in tables:
                     table_name = table[0]
                     appointments = self.db.cursor.execute(
                         f"""
                         SELECT appointment_date, appointment_time, status, notes
                         FROM {table_name}
-                        WHERE patient_id = ?
+                        WHERE patient_id = ? AND appointment_date < ?
+                        ORDER BY appointment_date DESC, appointment_time DESC
                         """,
-                        (patient_id,)
+                        (self.patient_id, current_date)
                     ).fetchall()
                     all_appointments.extend(appointments)
+                
+                # Sort all entries by date
+                all_entries = []
+                
+                # Add appointments
+                for appt in all_appointments:
+                    # Find next appointment
+                    next_appt = ""
+                    if future_appointments:
+                        next_date = future_appointments[0][0]
+                        next_time = format_time_12hr(future_appointments[0][1])
+                        next_appt = f"{next_date} {next_time}"
+                    
+                    entry = {
+                        'date': appt[0],
+                        'type': 'Appointment',
+                        'status': appt[2],
+                        'notes': appt[3] or '',
+                        'next_appointment': next_appt
+                    }
+                    all_entries.append(entry)
+                
+                # Add session history entries
+                for session in sessions:
+                    # Find next appointment
+                    next_appt = ""
+                    if future_appointments:
+                        next_date = future_appointments[0][0]
+                        next_time = format_time_12hr(future_appointments[0][1])
+                        next_appt = f"{next_date} {next_time}"
+                    
+                    entry = {
+                        'date': session['session_date'],
+                        'type': 'Session',
+                        'status': 'done',
+                        'notes': session.get('treatment_notes', '') or '',
+                        'next_appointment': next_appt
+                    }
+                    all_entries.append(entry)
+                
+                # Sort all entries by date in descending order (most recent first)
+                all_entries.sort(key=lambda x: x['date'], reverse=True)
+                
+                # Insert into treeview
+                for entry in all_entries:
+                    self.session_tree.insert(
+                        "",
+                        "end",
+                        values=(
+                            entry['date'],
+                            entry['type'],
+                            entry['status'].capitalize(),
+                            entry['notes'],
+                            entry['next_appointment']
+                        ),
+                        tags=(entry['status'].lower(),)
+                    )
+                    
+                # If no entries found, add a placeholder message
+                if not all_entries:
+                    self.session_tree.insert(
+                        "",
+                        "end",
+                        values=("No session history available", "-", "-", "-", "-"),
+                        tags=('info',)
+                    )
+                    
             finally:
                 self.db.close()
-            
-            # Sort all entries by date
-            all_entries = []
-            
-            # Add appointments
-            for appt in all_appointments:
-                # Find next appointment
-                next_appt = ""
-                if future_appointments:
-                    next_date = future_appointments[0][0]
-                    next_time = format_time_12hr(future_appointments[0][1])
-                    next_appt = f"{next_date} {next_time}"
-                
-                entry = {
-                    'date': appt[0],
-                    'type': 'Appointment',
-                    'status': appt[2],
-                    'notes': appt[3],
-                    'next_appointment': next_appt
-                }
-                all_entries.append(entry)
-            
-            # Add session history entries
-            for session in sessions:
-                # Find next appointment
-                next_appt = ""
-                if future_appointments:
-                    next_date = future_appointments[0][0]
-                    next_time = format_time_12hr(future_appointments[0][1])
-                    next_appt = f"{next_date} {next_time}"
-                
-                entry = {
-                    'date': session['session_date'],
-                    'type': 'Session',
-                    'status': 'done',
-                    'notes': session.get('treatment_notes', ''),
-                    'next_appointment': next_appt
-                }
-                all_entries.append(entry)
-            
-            # Sort all entries by date in descending order (most recent first)
-            all_entries.sort(key=lambda x: x['date'], reverse=True)
-            
-            # Insert into treeview
-            for entry in all_entries:
-                self.session_tree.insert(
-                    "",
-                    "end",
-                    values=(
-                        entry['date'],
-                        entry['type'],
-                        entry['status'].capitalize(),
-                        entry['notes'],
-                        entry['next_appointment']
-                    ),
-                    tags=(entry['status'].lower(),)
-                )
             
         except Exception as e:
             print(f"Error refreshing session history: {str(e)}")
             import traceback
             traceback.print_exc()
+            
+            # Show error in tree
+            self.session_tree.insert(
+                "",
+                "end",
+                values=("Error loading session history", "-", "-", str(e), "-"),
+                tags=('error',)
+            )
     
     def add_patient(self):
         """Clear fields for new patient"""
