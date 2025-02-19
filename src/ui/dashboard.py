@@ -13,6 +13,9 @@ from utils.helpers import (
 )
 from utils.colors import *
 import calendar
+from utils.google_calendar import GoogleCalendarManager
+import os
+import json
 
 # Add hover color constants if not defined in colors.py
 WARNING_AMBER_HOVER = "#F59E0B"  # Darker amber for hover
@@ -24,19 +27,145 @@ class DashboardFrame(ctk.CTkFrame):
         super().__init__(parent)
         self.db = db
         self.selected_date = datetime.now()
+        self.selected_appointment = None
+        self.appointment_list = None
+        self.calendar = None
+        self.search_var = None
+        self.status_var = None
         
-        # Configure grid
-        self.grid_columnconfigure(1, weight=1)
-        self.grid_rowconfigure(0, weight=1)
-        
-        # Configure colors
-        self.configure(fg_color=BG_WHITE)
-        
-        # Initialize variables
-        self.view_var = tk.StringVar(value="today")
+        # Initialize Google Calendar
+        self.gcal = None
+        self.try_init_gcal()
         
         self.setup_ui()
         
+    def try_init_gcal(self):
+        """Initialize Google Calendar if credentials exist"""
+        try:
+            # Load sync config
+            sync_config_file = os.path.join(self.db._get_app_data_dir(), "sync_config.json")
+            if os.path.exists(sync_config_file):
+                with open(sync_config_file, 'r') as f:
+                    sync_config = json.load(f)
+                    
+                if sync_config.get('auto_sync', True):  # Default to True if not set
+                    self.gcal = GoogleCalendarManager()
+                    if self.gcal.authenticate():
+                        print("Successfully authenticated with Google Calendar")
+                    else:
+                        print("Failed to authenticate with Google Calendar")
+            else:
+                # Create default config with auto-sync enabled
+                sync_config = {
+                    'auto_sync': True,
+                    'last_sync': None,
+                    'credentials_path': None
+                }
+                os.makedirs(os.path.dirname(sync_config_file), exist_ok=True)
+                with open(sync_config_file, 'w') as f:
+                    json.dump(sync_config, f)
+                
+                self.gcal = GoogleCalendarManager()
+                self.gcal.authenticate()
+                
+        except Exception as e:
+            print(f"Google Calendar initialization failed: {str(e)}")
+            self.gcal = None
+
+    def get_current_appointments(self):
+        """Get appointments for the current selected date"""
+        try:
+            return self.db.get_appointments_by_date(self.selected_date.strftime("%Y-%m-%d"))
+        except Exception as e:
+            print(f"Error getting appointments: {str(e)}")
+            return []
+
+    def sync_with_google_calendar(self, appointments=None):
+        """Sync appointments with Google Calendar"""
+        if not self.gcal:
+            return
+            
+        if not appointments:
+            appointments = self.get_current_appointments()
+            
+        if not appointments:
+            return
+            
+        try:
+            # Initialize last sync times if not exists
+            if not hasattr(self, '_last_sync_times'):
+                self._last_sync_times = {}
+            
+            # Filter out recently synced appointments
+            current_time = datetime.now()
+            appointments_to_sync = []
+            for appt in appointments:
+                appt_id = str(appt['id'])
+                if appt_id not in self._last_sync_times or \
+                   (current_time - self._last_sync_times[appt_id]).total_seconds() >= 5:
+                    appointments_to_sync.append(appt)
+                    self._last_sync_times[appt_id] = current_time
+            
+            if not appointments_to_sync:
+                return
+            
+            def sync_task():
+                try:
+                    # Perform sync
+                    if self.gcal.sync_appointments(appointments_to_sync):
+                        print(f"Successfully synced {len(appointments_to_sync)} appointments")
+                    else:
+                        print("Failed to sync appointments")
+                except Exception as e:
+                    print(f"Error in sync task: {str(e)}")
+                    import traceback
+                    traceback.print_exc()
+            
+            # Schedule sync task
+            self.after(100, sync_task)
+            
+        except Exception as e:
+            print(f"Error in sync_with_google_calendar: {str(e)}")
+            import traceback
+            traceback.print_exc()
+
+    def refresh_appointments(self, skip_sync=False):
+        """Refresh appointments list"""
+        try:
+            # Get appointments for selected date
+            appointments = self.db.get_appointments_by_date(self.selected_date.strftime("%Y-%m-%d"))
+            
+            # Update the appointment list
+            self.update_appointment_list(appointments)
+            
+            # Only sync if:
+            # 1. Not explicitly skipped
+            # 2. We have appointments to sync
+            # 3. Google Calendar is initialized
+            if not skip_sync and appointments and self.gcal:
+                # Check if any appointments need syncing
+                current_time = datetime.now()
+                needs_sync = False
+                if not hasattr(self, '_last_sync_times'):
+                    needs_sync = True
+                else:
+                    for appt in appointments:
+                        appt_id = str(appt['id'])
+                        if (appt_id not in self._last_sync_times or 
+                            (current_time - self._last_sync_times[appt_id]).total_seconds() >= 5):
+                            needs_sync = True
+                            break
+                
+                if needs_sync:
+                    self.sync_with_google_calendar(appointments)
+        
+        except Exception as e:
+            print(f"Error refreshing appointments: {str(e)}")
+            messagebox.showerror(
+                "Error",
+                "Failed to refresh appointments. Please try again."
+            )
+
     def setup_ui(self):
         """Initialize dashboard UI components"""
         # Configure main frame to use full space
@@ -537,69 +666,6 @@ class DashboardFrame(ctk.CTkFrame):
         # Load appointments
         self.refresh_appointments()
         
-    def refresh_appointments(self):
-        """Refresh the appointments list"""
-        try:
-            # Clear existing items
-            for item in self.tree.get_children():
-                self.tree.delete(item)
-            
-            # Get appointments for selected date
-            appointments = self.db.get_appointments_by_date(self.calendar.get_date())
-            
-            # Group appointments by date
-            grouped_appointments = {}
-            for appt in appointments:
-                date = appt['appointment_date']
-                if date not in grouped_appointments:
-                    grouped_appointments[date] = []
-                grouped_appointments[date].append(appt)
-            
-            # Insert appointments grouped by date
-            for date, appts in grouped_appointments.items():
-                # Add date header
-                date_obj = datetime.strptime(date, "%Y-%m-%d")
-                header_text = date_obj.strftime("%A, %B %d")
-                
-                # Sort appointments by time
-                appts.sort(key=lambda x: x['appointment_time'])
-                
-                # Insert appointments
-                for appt in appts:
-                    # Convert time to 12-hour format
-                    time_12h = format_time_12hr(appt['appointment_time'])
-                    
-                    # Get status color
-                    status = appt['status'].lower() if appt['status'] else 'pending'
-                    
-                    # Store the appointment ID in the item's tags
-                    self.tree.insert(
-                        "",
-                        "end",
-                        values=(
-                            time_12h,
-                            appt['patient_name'],
-                            status.capitalize(),
-                            appt['notes'],
-                            "View Notes" if appt['notes'] else ""
-                        ),
-                        tags=(str(appt['id']), status)  # Add appointment ID as first tag
-                    )
-            
-            # If no appointments, show message
-            if not appointments:
-                self.tree.insert(
-                    "",
-                    "end",
-                    values=("No appointments scheduled", "", "", "", ""),
-                    tags=('message',)
-                )
-            
-        except Exception as e:
-            print(f"Error refreshing appointments: {str(e)}")
-            import traceback
-            traceback.print_exc()
-    
     def on_date_select(self, event):
         """Handle date selection in calendar"""
         try:
@@ -848,56 +914,333 @@ class DashboardFrame(ctk.CTkFrame):
                         )
                         break
 
+    def update_appointment_list(self, appointments):
+        """Update the appointment list with new appointments"""
+        try:
+            # Clear existing items
+            for item in self.tree.get_children():
+                self.tree.delete(item)
+            
+            # Insert new appointments
+            for appt in appointments:
+                # Convert time to 12-hour format
+                time_12h = format_time_12hr(appt['appointment_time'])
+                
+                # Get status color
+                status = appt['status'].lower() if appt['status'] else 'pending'
+                
+                # Store the appointment ID in the item's tags
+                self.tree.insert(
+                    "",
+                    "end",
+                    values=(
+                        time_12h,
+                        appt['patient_name'],
+                        status.capitalize(),
+                        appt['notes'],
+                        "View Notes" if appt['notes'] else ""
+                    ),
+                    tags=(str(appt['id']), status)  # Add appointment ID as first tag
+                )
+            
+            # If no appointments, show message
+            if not appointments:
+                self.tree.insert(
+                    "",
+                    "end",
+                    values=("No appointments scheduled", "", "", "", ""),
+                    tags=('message',)
+                )
+            
+        except Exception as e:
+            print(f"Error updating appointment list: {str(e)}")
+            import traceback
+            traceback.print_exc()
+
+    def save_appointment(self, appointment_data):
+        """Save appointment and sync with Google Calendar"""
+        try:
+            # Save to database
+            if appointment_data.get('id'):
+                # Update existing appointment
+                self.db.update_appointment(**appointment_data)
+                
+                # Get the updated appointment data for syncing
+                updated_appointments = self.db.get_appointments_by_date(self.selected_date.strftime("%Y-%m-%d"))
+                
+                # Find the specific appointment we just saved
+                saved_appt = next(
+                    (appt for appt in updated_appointments if str(appt['id']) == str(appointment_data['id'])),
+                    None
+                )
+                
+                # Only sync this specific appointment if it exists and status has changed
+                if saved_appt and self.gcal:
+                    # Clear any existing sync time for this appointment to force a sync
+                    if hasattr(self, '_last_sync_times'):
+                        appt_id = str(saved_appt['id'])
+                        if appt_id in self._last_sync_times:
+                            del self._last_sync_times[appt_id]
+                    
+                    # Sync only this appointment
+                    self.sync_with_google_calendar([saved_appt])
+            else:
+                # Create new appointment with status
+                appointment_id = self.db.add_appointment(
+                    patient_id=appointment_data['patient_id'],
+                    appointment_date=appointment_data['appointment_date'],
+                    appointment_time=appointment_data['appointment_time'],
+                    notes=appointment_data.get('notes', ''),
+                    status=appointment_data.get('status', 'pending')
+                )
+                
+                # Get the new appointment data
+                updated_appointments = self.db.get_appointments_by_date(self.selected_date.strftime("%Y-%m-%d"))
+                saved_appt = next(
+                    (appt for appt in updated_appointments if str(appt['id']) == str(appointment_id)),
+                    None
+                )
+                
+                # Sync the new appointment
+                if saved_appt and self.gcal:
+                    self.sync_with_google_calendar([saved_appt])
+            
+            # Refresh the UI without triggering another sync
+            self.refresh_appointments(skip_sync=True)
+            
+        except Exception as e:
+            print(f"Error saving appointment: {str(e)}")
+            messagebox.showerror(
+                "Error",
+                f"Failed to save appointment: {str(e)}"
+            )
+
 class AppointmentDialog(ctk.CTkToplevel):
     def __init__(self, parent, db, date, edit_mode=False, initial_values=None):
         super().__init__(parent)
-        self.dashboard = parent  # Store reference to dashboard
+        
+        # Initialize constants
+        self.APPOINTMENT_DURATION = 45  # Duration in minutes
+        
+        # Store parameters
+        self.parent = parent
         self.db = db
         self.date = date
         self.edit_mode = edit_mode
         self.initial_values = initial_values or {}
-        self.selected_patient_id = None
         
-        # Configure window
-        self.title("Edit Appointment" if edit_mode else "New Appointment")
-        self.geometry("600x800")
+        # Set window title
+        self.title("Edit Appointment" if edit_mode else "Add Appointment")
+        
+        # Initialize variables
+        self.selected_patient_id = None
+        self.appointment_id = None
+        self.calendar = parent.calendar  # Get calendar reference from parent
+        
+        # Setup UI
+        self.setup_ui()
+        
+        # Set initial values if in edit mode
+        if edit_mode and initial_values:
+            self.set_initial_values()
         
         # Make dialog modal
         self.transient(parent)
         self.grab_set()
         
-        # Configure grid
-        self.grid_columnconfigure(0, weight=1)
-        self.grid_rowconfigure(0, weight=1)
+        # Center the window
+        self.center_window()
         
-        self.setup_ui()
+        # Bind escape key to close
+        self.bind("<Escape>", lambda e: self.destroy())
 
     def setup_ui(self):
-        """Setup appointment dialog UI"""
-        # Main container
+        """Initialize UI components"""
+        # Main container using grid
         self.main_container = ctk.CTkFrame(self)
-        self.main_container.grid(row=0, column=0, padx=20, pady=20, sticky="nsew")
+        self.main_container.grid(row=0, column=0, sticky="nsew", padx=20, pady=20)
+        
+        # Configure grid weights for main window
         self.grid_columnconfigure(0, weight=1)
         self.grid_rowconfigure(0, weight=1)
         
-        # Patient selection section
+        # Configure grid weights for main container
+        self.main_container.grid_columnconfigure(0, weight=1)
+        
+        # Setup sections using grid
         self.setup_patient_section()
-        
-        # Date and time selection
         self.setup_datetime_section()
-        
-        # Status selection
         self.setup_status_section()
-        
-        # Notes section
         self.setup_notes_section()
-        
-        # Buttons
         self.setup_buttons()
         
-        # Set initial values if editing
-        if hasattr(self, 'initial_values'):
-            self.set_initial_values()
+        # Create status label for availability
+        self.status_label = ctk.CTkLabel(
+            self.main_container,
+            text="",
+            font=("Helvetica", 12)
+        )
+        self.status_label.grid(row=5, column=0, sticky="ew", pady=5)
+        
+        # Create cancel frame (hidden by default)
+        self.cancel_frame = ctk.CTkFrame(self.main_container)
+        self.cancel_frame.grid(row=6, column=0, sticky="ew", pady=5)
+        self.cancel_frame.grid_remove()  # Hide initially
+
+    def setup_patient_section(self):
+        """Setup patient selection section"""
+        # Patient section frame
+        patient_frame = ctk.CTkFrame(self.main_container)
+        patient_frame.grid(row=0, column=0, sticky="ew", pady=(0, 10))
+        patient_frame.grid_columnconfigure(1, weight=1)
+        
+        # Patient label
+        ctk.CTkLabel(
+            patient_frame,
+            text="Patient:",
+            font=("Helvetica", 12, "bold")
+        ).grid(row=0, column=0, padx=5, pady=5, sticky="w")
+        
+        # Patient search entry
+        self.patient_search = ctk.CTkEntry(
+            patient_frame,
+            placeholder_text="Search patient by name or phone"
+        )
+        self.patient_search.grid(row=0, column=1, padx=5, pady=5, sticky="ew")
+        
+        # Patient listbox
+        self.patient_listbox = tk.Listbox(
+            patient_frame,
+            height=5,
+            selectmode="single"
+        )
+        self.patient_listbox.grid(row=1, column=0, columnspan=2, sticky="ew", padx=5, pady=5)
+        
+        # Bind events
+        self.patient_search.bind('<KeyRelease>', self.on_patient_search)
+        self.patient_listbox.bind('<<ListboxSelect>>', self.on_patient_select)
+
+    def setup_datetime_section(self):
+        """Setup date and time selection section"""
+        # Date and time frame
+        datetime_frame = ctk.CTkFrame(self.main_container)
+        datetime_frame.grid(row=1, column=0, sticky="ew", pady=(0, 10))
+        datetime_frame.grid_columnconfigure(1, weight=1)
+        
+        # Date label
+        ctk.CTkLabel(
+            datetime_frame,
+            text="Date:",
+            font=("Helvetica", 12, "bold")
+        ).grid(row=0, column=0, padx=5, pady=5, sticky="w")
+        
+        # Date display
+        date_str = self.date.strftime("%Y-%m-%d")
+        ctk.CTkLabel(
+            datetime_frame,
+            text=date_str
+        ).grid(row=0, column=1, padx=5, pady=5, sticky="w")
+        
+        # Time label
+        ctk.CTkLabel(
+            datetime_frame,
+            text="Time:",
+            font=("Helvetica", 12, "bold")
+        ).grid(row=1, column=0, padx=5, pady=5, sticky="w")
+        
+        # Time selection combobox
+        self.time_var = tk.StringVar()
+        self.time_combo = ttk.Combobox(
+            datetime_frame,
+            textvariable=self.time_var,
+            values=self.get_time_slots(),
+            state="readonly"
+        )
+        self.time_combo.grid(row=1, column=1, padx=5, pady=5, sticky="ew")
+        
+        # End time label
+        ctk.CTkLabel(
+            datetime_frame,
+            text="End Time:",
+            font=("Helvetica", 12, "bold")
+        ).grid(row=2, column=0, padx=5, pady=5, sticky="w")
+        
+        # End time display
+        self.end_time_label = ctk.CTkLabel(datetime_frame, text="")
+        self.end_time_label.grid(row=2, column=1, padx=5, pady=5, sticky="w")
+        
+        # Bind time selection event
+        self.time_var.trace_add("write", self.on_time_change)
+
+    def setup_status_section(self):
+        """Setup status selection section"""
+        # Status frame
+        status_frame = ctk.CTkFrame(self.main_container)
+        status_frame.grid(row=2, column=0, sticky="ew", pady=(0, 10))
+        status_frame.grid_columnconfigure(1, weight=1)
+        
+        # Status label
+        ctk.CTkLabel(
+            status_frame,
+            text="Status:",
+            font=("Helvetica", 12, "bold")
+        ).grid(row=0, column=0, padx=5, pady=5, sticky="w")
+        
+        # Status selection
+        self.status_var = tk.StringVar(value="confirmed")  # Set default to confirmed
+        statuses = ["confirmed", "pending", "done", "cancelled"]
+        self.status_combo = ttk.Combobox(
+            status_frame,
+            textvariable=self.status_var,
+            values=statuses,
+            state="readonly"
+        )
+        self.status_combo.grid(row=0, column=1, padx=5, pady=5, sticky="ew")
+        
+        # Bind status change event
+        self.status_var.trace_add("write", self.on_status_change)
+
+    def setup_notes_section(self):
+        """Setup notes section"""
+        # Notes frame
+        notes_frame = ctk.CTkFrame(self.main_container)
+        notes_frame.grid(row=3, column=0, sticky="ew", pady=(0, 10))
+        notes_frame.grid_columnconfigure(0, weight=1)
+        
+        # Notes label
+        ctk.CTkLabel(
+            notes_frame,
+            text="Notes:",
+            font=("Helvetica", 12, "bold")
+        ).grid(row=0, column=0, padx=5, pady=(5,0), sticky="w")
+        
+        # Notes textbox
+        self.notes_text = ctk.CTkTextbox(
+            notes_frame,
+            height=100
+        )
+        self.notes_text.grid(row=1, column=0, padx=5, pady=5, sticky="ew")
+
+    def setup_buttons(self):
+        """Setup action buttons"""
+        # Buttons frame
+        button_frame = ctk.CTkFrame(self.main_container)
+        button_frame.grid(row=4, column=0, sticky="ew", pady=(0, 10))
+        button_frame.grid_columnconfigure((0, 1), weight=1)
+        
+        # Save button
+        ctk.CTkButton(
+            button_frame,
+            text="Save",
+            command=self.save
+        ).grid(row=0, column=0, padx=5, pady=5)
+        
+        # Cancel button
+        ctk.CTkButton(
+            button_frame,
+            text="Cancel",
+            command=self.destroy
+        ).grid(row=0, column=1, padx=5, pady=5)
 
     def set_initial_values(self):
         """Set initial values when editing an appointment"""
@@ -907,10 +1250,10 @@ class AppointmentDialog(ctk.CTkToplevel):
         try:
             # Set patient
             if self.initial_values.get('patient_name'):
-                self.patient_entry.delete(0, tk.END)
-                self.patient_entry.insert(0, self.initial_values['patient_name'])
+                self.patient_search.delete(0, tk.END)
+                self.patient_search.insert(0, self.initial_values['patient_name'])
                 # Hide the patient list since we already have a selection
-                self.patient_list.grid_remove()
+                self.patient_listbox.grid_remove()
             
             # Set time
             if self.initial_values.get('time'):
@@ -921,11 +1264,11 @@ class AppointmentDialog(ctk.CTkToplevel):
                     time_12h = time_obj.strftime("%I:%M %p").lstrip("0")
                 except ValueError:
                     time_12h = time_str
-                self.time_combobox.set(time_12h)
+                self.time_combo.set(time_12h)
             
             # Set status
             if self.initial_values.get('status'):
-                self.status_combobox.set(self.initial_values['status'].capitalize())
+                self.status_var.set(self.initial_values['status'].capitalize())
             
             # Set notes
             if self.initial_values.get('notes'):
@@ -934,117 +1277,29 @@ class AppointmentDialog(ctk.CTkToplevel):
             
             # Store appointment ID and patient ID for saving
             self.appointment_id = self.initial_values.get('id')
-            self.patient_id = self.initial_values.get('patient_id')
+            self.selected_patient_id = self.initial_values.get('patient_id')
             
         except Exception as e:
             print(f"Error setting initial values: {str(e)}")
             import traceback
             traceback.print_exc()
 
-    def setup_patient_section(self):
-        """Setup patient selection section"""
-        patient_frame = ctk.CTkFrame(self.main_container)
-        patient_frame.grid(row=0, column=0, sticky="ew", padx=10, pady=5)
-        patient_frame.grid_columnconfigure(1, weight=1)
-        
-        # Patient label
-        ctk.CTkLabel(
-            patient_frame,
-            text="Patient:",
-            font=("Helvetica", 12, "bold")
-        ).grid(row=0, column=0, padx=5, pady=5)
-        
-        # Patient search entry
-        self.patient_var = tk.StringVar()
-        self.patient_var.trace_add("write", self.on_patient_search)
-        
-        self.patient_entry = ctk.CTkEntry(
-            patient_frame,
-            textvariable=self.patient_var,
-            placeholder_text="Search patient..."
-        )
-        self.patient_entry.grid(row=0, column=1, sticky="ew", padx=5, pady=5)
-        
-        # Patient listbox
-        self.patient_list = tk.Listbox(
-            patient_frame,
-            height=5,
-            selectmode="single"
-        )
-        self.patient_list.grid(row=1, column=0, columnspan=2, sticky="ew", padx=5, pady=5)
-        self.patient_list.bind('<<ListboxSelect>>', self.on_patient_select)
-        
-    def setup_datetime_section(self):
-        """Setup date and time selection section"""
-        date_frame = ctk.CTkFrame(self.main_container)
-        date_frame.grid(row=1, column=0, sticky="ew", padx=10, pady=5)
-        
-        ctk.CTkLabel(
-            date_frame,
-            text="Date:",
-            font=("Helvetica", 12, "bold")
-        ).grid(row=0, column=0, padx=5, pady=5)
-        
-        # Calendar for date selection
-        self.calendar = Calendar(
-            date_frame,
-            selectmode="day",
-            date_pattern="y-mm-dd"
-        )
-        self.calendar.grid(row=1, column=0, padx=5, pady=5)
-        
-        # Set initial date
-        if isinstance(self.date, datetime):
-            self.calendar.selection_set(self.date.strftime("%Y-%m-%d"))
-        else:
-            self.calendar.selection_set(self.date)
-        
-        # Time selection
-        self.setup_time_selection()
-        
-    def setup_time_selection(self):
-        """Setup time selection combobox"""
-        time_frame = ctk.CTkFrame(self.main_container)
-        time_frame.grid(row=2, column=0, columnspan=2, sticky="ew", padx=10, pady=5)
-        
-        ctk.CTkLabel(
-            time_frame,
-            text="Time:",
-            font=("Helvetica", 12, "bold")
-        ).pack(side="left", padx=5)
-        
-        # Get time slots
-        time_slots = self.get_time_slots()
-        
-        # Create combobox for time selection
-        self.time_var = tk.StringVar()
-        self.time_combobox = ctk.CTkComboBox(
-            time_frame,
-            values=time_slots,
-            variable=self.time_var,
-            width=120,
-            state="readonly"
-        )
-        self.time_combobox.pack(side="left", padx=5)
-        
-        # Set initial time if in edit mode
-        if self.edit_mode and self.initial_values.get('appointment_time'):
-            # Convert 24h time to 12h format
-            time_24h = datetime.strptime(self.initial_values['appointment_time'], "%H:%M")
-            time_12h = time_24h.strftime("%I:%M %p").lstrip("0")
-            if time_12h in time_slots:
-                self.time_var.set(time_12h)
-        
-        # Bind time selection to availability check
-        self.time_var.trace_add("write", lambda *args: self.check_timeslot_availability(self.time_var.get()))
-        
-        # Status label for availability
-        self.status_label = ctk.CTkLabel(
-            time_frame,
-            text="",
-            font=("Helvetica", 12)
-        )
-        self.status_label.pack(side="left", padx=10)
+    def on_time_change(self, *args):
+        """Handle time selection change"""
+        selected_time = self.time_var.get()
+        if selected_time:
+            # Update end time
+            try:
+                start_time = datetime.strptime(selected_time, "%I:%M %p")
+                end_time = start_time + timedelta(minutes=self.APPOINTMENT_DURATION)
+                self.end_time_label.configure(
+                    text=f"End: {end_time.strftime('%I:%M %p').lstrip('0')} ({self.APPOINTMENT_DURATION} min)"
+                )
+            except ValueError:
+                self.end_time_label.configure(text="")
+            
+            # Check availability
+            self.check_timeslot_availability(selected_time)
 
     def get_time_slots(self):
         """Generate time slots for the combobox"""
@@ -1057,7 +1312,8 @@ class AppointmentDialog(ctk.CTkToplevel):
             # Format in 12-hour with AM/PM
             time_12h = current.strftime("%I:%M %p").lstrip("0")
             slots.append(time_12h)
-            current += timedelta(minutes=15)
+            # Use 45-minute intervals
+            current += timedelta(minutes=45)
         
         return slots
 
@@ -1100,21 +1356,21 @@ class AppointmentDialog(ctk.CTkToplevel):
     
     def on_status_change(self, *args):
         """Handle status change"""
-        if self.status_var.get() == "cancelled":
-            self.cancel_frame.pack(fill="x")
+        if self.status_var.get().lower() == "cancelled":
+            self.cancel_frame.grid()  # Show the frame
         else:
-            self.cancel_frame.pack_forget()
+            self.cancel_frame.grid_remove()  # Hide the frame
     
     def on_patient_search(self, *args):
         """Handle patient search input changes"""
-        search_text = self.patient_var.get().strip()
+        search_text = self.patient_search.get().strip()
         
         # Clear listbox
-        self.patient_list.delete(0, tk.END)
+        self.patient_listbox.delete(0, tk.END)
         
         if search_text:
             # Show listbox when searching
-            self.patient_list.grid(row=1, column=0, columnspan=2, sticky="ew", padx=5, pady=5)
+            self.patient_listbox.grid(row=1, column=0, columnspan=2, sticky="ew", padx=5, pady=5)
             
             # Search patients
             matching_patients = self.db.search_patients(search_text)
@@ -1130,29 +1386,29 @@ class AppointmentDialog(ctk.CTkToplevel):
                         f"📞 {patient.get('phone', 'N/A')}"
                     )
                     
-                    self.patient_list.insert(tk.END, display_text)
+                    self.patient_listbox.insert(tk.END, display_text)
                 except Exception as e:
                     print(f"Error formatting patient details: {str(e)}")
                     continue
             
             # Configure listbox height based on results
-            self.patient_list.configure(height=min(5, len(matching_patients)))
+            self.patient_listbox.configure(height=min(5, len(matching_patients)))
             
             # Configure listbox appearance for better readability
-            self.patient_list.configure(
+            self.patient_listbox.configure(
                 font=("Helvetica", 11),
                 selectmode="single",
                 activestyle="none"
             )
         else:
             # Hide listbox when search is empty
-            self.patient_list.grid_remove()
+            self.patient_listbox.grid_remove()
     
     def on_patient_select(self, event):
         """Handle patient selection from listbox"""
-        selection = self.patient_list.curselection()
+        selection = self.patient_listbox.curselection()
         if selection:
-            selected_text = self.patient_list.get(selection[0])
+            selected_text = self.patient_listbox.get(selection[0])
             try:
                 # Extract patient ID from the selection
                 patient_id = selected_text.split("ID: ")[-1].split()[0]
@@ -1160,10 +1416,11 @@ class AppointmentDialog(ctk.CTkToplevel):
                 
                 # Update entry with patient name
                 patient_name = selected_text.split(" |")[0]
-                self.patient_var.set(patient_name)
+                self.patient_search.delete(0, tk.END)
+                self.patient_search.insert(0, patient_name)
                 
                 # Hide the listbox after selection
-                self.patient_list.grid_remove()
+                self.patient_listbox.grid_remove()
             except (IndexError, ValueError) as e:
                 print(f"Error parsing patient selection: {str(e)}")
                 messagebox.showerror(
@@ -1175,18 +1432,18 @@ class AppointmentDialog(ctk.CTkToplevel):
         """Save the appointment"""
         try:
             # Validate required fields
-            if not self.patient_entry.get().strip():
+            if not self.patient_search.get().strip():
                 messagebox.showerror("Error", "Please select a patient")
                 return
                 
-            if not self.time_combobox.get():
+            if not self.time_combo.get():
                 messagebox.showerror("Error", "Please select a time")
                 return
             
             # Get the values
-            patient_name = self.patient_entry.get().strip()
-            time_str = self.time_combobox.get()
-            status = self.status_combobox.get().lower()
+            patient_name = self.patient_search.get().strip()
+            time_str = self.time_combo.get()
+            status = self.status_var.get().lower()  # Get the actual selected status
             notes = self.notes_text.get("1.0", tk.END).strip()
             
             # Get the selected date from calendar
@@ -1233,16 +1490,17 @@ class AppointmentDialog(ctk.CTkToplevel):
                     selected_date,
                     time_24h,
                     notes,
-                    status
+                    status  # Pass the actual selected status
                 )
                 messagebox.showinfo("Success", "Appointment updated successfully")
             else:
-                # Create new appointment
-                self.db.add_appointment(
-                    patient_id,
-                    selected_date,
-                    time_24h,
-                    notes
+                # Create new appointment with status
+                appointment_id = self.db.add_appointment(
+                    patient_id=patient_id,
+                    appointment_date=selected_date,
+                    appointment_time=time_24h,
+                    notes=notes,
+                    status=status  # Pass the actual selected status
                 )
                 messagebox.showinfo("Success", "Appointment added successfully")
             
@@ -1250,8 +1508,8 @@ class AppointmentDialog(ctk.CTkToplevel):
             self.destroy()
             
             # Refresh the appointment list in the dashboard
-            if hasattr(self.dashboard, 'refresh_appointments'):
-                self.dashboard.refresh_appointments()
+            if hasattr(self.parent, 'refresh_appointments'):
+                self.parent.refresh_appointments()
             
         except Exception as e:
             messagebox.showerror("Error", f"Failed to save appointment: {str(e)}")
@@ -1259,62 +1517,14 @@ class AppointmentDialog(ctk.CTkToplevel):
             import traceback
             traceback.print_exc()
 
-    def setup_status_section(self):
-        """Setup status selection section"""
-        status_frame = ctk.CTkFrame(self.main_container)
-        status_frame.grid(row=3, column=0, sticky="ew", padx=10, pady=5)
-        status_frame.grid_columnconfigure(1, weight=1)
-        
-        ctk.CTkLabel(
-            status_frame,
-            text="Status:",
-            font=("Helvetica", 12, "bold")
-        ).grid(row=0, column=0, padx=5, pady=5)
-        
-        status_options = ["Pending", "Done", "Cancelled"]
-        self.status_combobox = ctk.CTkComboBox(
-            status_frame,
-            values=status_options,
-            state="readonly"
-        )
-        self.status_combobox.set("Pending")
-        self.status_combobox.grid(row=0, column=1, sticky="ew", padx=5, pady=5)
-
-    def setup_notes_section(self):
-        """Setup notes section"""
-        notes_frame = ctk.CTkFrame(self.main_container)
-        notes_frame.grid(row=4, column=0, sticky="ew", padx=10, pady=5)
-        notes_frame.grid_columnconfigure(0, weight=1)
-        
-        ctk.CTkLabel(
-            notes_frame,
-            text="Notes:",
-            font=("Helvetica", 12, "bold")
-        ).grid(row=0, column=0, sticky="w", padx=5, pady=2)
-        
-        self.notes_text = ctk.CTkTextbox(
-            notes_frame,
-            height=100
-        )
-        self.notes_text.grid(row=1, column=0, sticky="ew", padx=5, pady=5)
-
-    def setup_buttons(self):
-        """Setup save and cancel buttons"""
-        button_frame = ctk.CTkFrame(self.main_container)
-        button_frame.grid(row=5, column=0, sticky="ew", padx=10, pady=10)
-        button_frame.grid_columnconfigure((0, 1), weight=1)
-        
-        ctk.CTkButton(
-            button_frame,
-            text="Save",
-            command=self.save
-        ).grid(row=0, column=0, padx=5, pady=5)
-        
-        ctk.CTkButton(
-            button_frame,
-            text="Cancel",
-            command=self.destroy
-        ).grid(row=0, column=1, padx=5, pady=5)
+    def center_window(self):
+        """Center the window on the screen"""
+        self.update_idletasks()
+        width = self.winfo_width()
+        height = self.winfo_height()
+        x = (self.winfo_screenwidth() // 2) - (width // 2)
+        y = (self.winfo_screenheight() // 2) - (height // 2)
+        self.geometry(f'{width}x{height}+{x}+{y}')
 
 class NotesDialog(ctk.CTkToplevel):
     def __init__(self, parent, title, notes):

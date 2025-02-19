@@ -289,7 +289,7 @@ class DatabaseManager:
         finally:
             self.close()
 
-    def add_appointment(self, patient_id, appointment_date, appointment_time, notes=""):
+    def add_appointment(self, patient_id, appointment_date, appointment_time, notes="", status="pending"):
         """Add a new appointment"""
         # Convert appointment_date to string if it's a datetime object
         if isinstance(appointment_date, datetime):
@@ -318,9 +318,9 @@ class DatabaseManager:
             query = f"""
             INSERT INTO appointments_{month_year} 
             (patient_id, appointment_date, appointment_time, status, notes)
-            VALUES (?, ?, ?, 'pending', ?)
+            VALUES (?, ?, ?, ?, ?)
             """
-            self.cursor.execute(query, (patient_id, appointment_date, appointment_time, notes))
+            self.cursor.execute(query, (patient_id, appointment_date, appointment_time, status.lower(), notes))
             self.conn.commit()
             return self.cursor.lastrowid
         finally:

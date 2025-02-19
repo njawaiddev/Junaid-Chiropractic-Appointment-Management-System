@@ -12,7 +12,9 @@ class SettingsFrame(ctk.CTkFrame):
         super().__init__(parent)
         self.db = db
         self.backup_config_file = os.path.join(self.db._get_app_data_dir(), "backup_config.json")
+        self.sync_config_file = os.path.join(self.db._get_app_data_dir(), "sync_config.json")
         self.load_backup_config()
+        self.load_sync_config()
         
         # Configure grid
         self.grid_columnconfigure(0, weight=1)
@@ -55,6 +57,38 @@ class SettingsFrame(ctk.CTkFrame):
         except Exception as e:
             print(f"Error saving backup config: {str(e)}")
     
+    def load_sync_config(self):
+        """Load Google Calendar sync configuration"""
+        try:
+            # Ensure directory exists
+            os.makedirs(os.path.dirname(self.sync_config_file), exist_ok=True)
+            
+            if os.path.exists(self.sync_config_file):
+                with open(self.sync_config_file, 'r') as f:
+                    self.sync_config = json.load(f)
+            else:
+                self.sync_config = {
+                    'auto_sync': True,  # Enable by default
+                    'last_sync': None,
+                    'credentials_path': None
+                }
+                self.save_sync_config()
+        except Exception as e:
+            print(f"Error loading sync config: {str(e)}")
+            self.sync_config = {
+                'auto_sync': True,  # Enable by default
+                'last_sync': None,
+                'credentials_path': None
+            }
+    
+    def save_sync_config(self):
+        """Save Google Calendar sync configuration"""
+        try:
+            with open(self.sync_config_file, 'w') as f:
+                json.dump(self.sync_config, f)
+        except Exception as e:
+            print(f"Error saving sync config: {str(e)}")
+    
     def setup_ui(self):
         """Initialize settings UI components"""
         # Title
@@ -75,6 +109,9 @@ class SettingsFrame(ctk.CTkFrame):
         
         # Backup Section
         self.setup_backup_section(content)
+        
+        # Google Calendar Section
+        self.setup_google_calendar_section(content)
     
     def setup_backup_section(self, parent):
         """Setup backup settings section"""
@@ -174,6 +211,105 @@ class SettingsFrame(ctk.CTkFrame):
                 command=self.update_schedule
             ).pack(anchor="w", padx=20, pady=2)
     
+    def setup_google_calendar_section(self, parent):
+        """Setup Google Calendar settings section"""
+        # Google Calendar header
+        calendar_header = ctk.CTkFrame(parent, fg_color=BG_WHITE)
+        calendar_header.pack(fill="x", pady=(20, 10))
+        
+        ctk.CTkLabel(
+            calendar_header,
+            text="Google Calendar Integration",
+            font=("Helvetica", 18, "bold"),
+            text_color=TEXT_PRIMARY
+        ).pack(anchor="w")
+        
+        # Credentials section
+        creds_frame = ctk.CTkFrame(parent, fg_color=BG_WHITE)
+        creds_frame.pack(fill="x", pady=5)
+        
+        ctk.CTkLabel(
+            creds_frame,
+            text="Google Calendar Credentials:",
+            font=("Helvetica", 12, "bold"),
+            text_color=TEXT_PRIMARY
+        ).pack(anchor="w", padx=5, pady=(0, 10))
+        
+        # Credentials file selection
+        creds_path_frame = ctk.CTkFrame(creds_frame, fg_color=BG_WHITE)
+        creds_path_frame.pack(fill="x", pady=5)
+        
+        self.creds_entry = ctk.CTkEntry(
+            creds_path_frame,
+            placeholder_text="Path to credentials.json",
+            width=300,
+            height=36
+        )
+        self.creds_entry.pack(side="left", padx=10)
+        
+        # Set credentials path if exists
+        if self.sync_config['credentials_path']:
+            self.creds_entry.insert(0, self.sync_config['credentials_path'])
+        
+        ctk.CTkButton(
+            creds_path_frame,
+            text="Browse",
+            command=self.browse_credentials,
+            width=100,
+            height=36,
+            corner_radius=18
+        ).pack(side="left", padx=5)
+        
+        # Help text
+        help_text = """
+        To use Google Calendar integration:
+        1. Go to Google Cloud Console
+        2. Create a new project or select existing one
+        3. Enable Google Calendar API
+        4. Create OAuth 2.0 credentials
+        5. Download credentials.json file
+        6. Select the file using the Browse button above
+        """
+        
+        help_label = ctk.CTkLabel(
+            creds_frame,
+            text=help_text,
+            font=("Helvetica", 12),
+            text_color=TEXT_SECONDARY,
+            justify="left"
+        )
+        help_label.pack(anchor="w", padx=10, pady=10)
+        
+        # Sync settings
+        sync_frame = ctk.CTkFrame(parent, fg_color=BG_WHITE)
+        sync_frame.pack(fill="x", pady=10)
+        
+        ctk.CTkLabel(
+            sync_frame,
+            text="Sync Settings:",
+            font=("Helvetica", 12, "bold"),
+            text_color=TEXT_PRIMARY
+        ).pack(anchor="w", padx=5, pady=(0, 10))
+        
+        # Auto-sync toggle
+        self.auto_sync_var = tk.BooleanVar(value=self.sync_config['auto_sync'])
+        auto_sync = ctk.CTkCheckBox(
+            sync_frame,
+            text="Enable automatic sync",
+            variable=self.auto_sync_var,
+            command=self.toggle_auto_sync
+        )
+        auto_sync.pack(anchor="w", padx=20, pady=2)
+        
+        # Manual sync button
+        ctk.CTkButton(
+            sync_frame,
+            text="Sync Now",
+            command=self.manual_sync,
+            height=36,
+            corner_radius=18
+        ).pack(anchor="w", padx=20, pady=10)
+    
     def manual_backup(self):
         """Perform manual database backup"""
         try:
@@ -236,4 +372,82 @@ class SettingsFrame(ctk.CTkFrame):
             messagebox.showinfo(
                 "Backup Schedule",
                 f"Automatic backup has been scheduled to run {schedule}."
+            )
+    
+    def browse_credentials(self):
+        """Open file browser to select Google Calendar credentials"""
+        from tkinter import filedialog
+        
+        filename = filedialog.askopenfilename(
+            initialdir=os.path.expanduser("~"),
+            title="Select Google Calendar Credentials",
+            filetypes=(("JSON files", "*.json"), ("All files", "*.*"))
+        )
+        
+        if filename:
+            # Copy credentials to app data directory
+            app_data = self.db._get_app_data_dir()
+            os.makedirs(app_data, exist_ok=True)
+            target_path = os.path.join(app_data, "google_credentials.json")
+            
+            try:
+                import shutil
+                shutil.copy2(filename, target_path)
+                self.creds_entry.delete(0, tk.END)
+                self.creds_entry.insert(0, target_path)
+                
+                # Update sync config
+                self.sync_config['credentials_path'] = target_path
+                self.save_sync_config()
+                
+                messagebox.showinfo(
+                    "Success",
+                    "Google Calendar credentials imported successfully!"
+                )
+            except Exception as e:
+                messagebox.showerror(
+                    "Error",
+                    f"Failed to import credentials: {str(e)}"
+                )
+        
+    def toggle_auto_sync(self):
+        """Handle auto-sync toggle"""
+        is_enabled = self.auto_sync_var.get()
+        self.sync_config['auto_sync'] = is_enabled
+        self.save_sync_config()
+        
+        if is_enabled:
+            messagebox.showinfo(
+                "Auto-sync Enabled",
+                "Appointments will automatically sync with Google Calendar"
+            )
+    
+    def manual_sync(self):
+        """Manually sync appointments with Google Calendar"""
+        try:
+            from utils.google_calendar import GoogleCalendarManager
+            
+            # Initialize Google Calendar manager
+            gcal = GoogleCalendarManager()
+            
+            # Get today's appointments
+            today = datetime.now().strftime("%Y-%m-%d")
+            appointments = self.db.get_appointments_by_date(today)
+            
+            # Sync appointments
+            if gcal.sync_appointments(appointments):
+                messagebox.showinfo(
+                    "Success",
+                    "Appointments synced with Google Calendar successfully!"
+                )
+            else:
+                messagebox.showerror(
+                    "Error",
+                    "Failed to sync appointments with Google Calendar"
+                )
+                
+        except Exception as e:
+            messagebox.showerror(
+                "Error",
+                f"Failed to sync with Google Calendar: {str(e)}"
             ) 

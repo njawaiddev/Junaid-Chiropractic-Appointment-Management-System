@@ -1,5 +1,5 @@
 import customtkinter as ctk
-from tkinter import ttk, PhotoImage
+from tkinter import ttk, PhotoImage, messagebox
 from pathlib import Path
 import sys
 import os
@@ -17,29 +17,70 @@ APP_NAME = "Junaid Chiropractic Management System"
 
 class ChiropracticApp:
     def __init__(self):
+        # Initialize the main window
         self.root = ctk.CTk()
-        self.root.title(f"{APP_NAME} - Developed by {DEVELOPER_NAME}")
-        self.setup_window()
+        self.root.title(APP_NAME)
         
-        # Load logo
-        self.load_logo()
+        # Set window size and position
+        window_width = 1200
+        window_height = 800
+        screen_width = self.root.winfo_screenwidth()
+        screen_height = self.root.winfo_screenheight()
+        center_x = int(screen_width/2 - window_width/2)
+        center_y = int(screen_height/2 - window_height/2)
+        self.root.geometry(f'{window_width}x{window_height}+{center_x}+{center_y}')
+        
+        # Configure window grid
+        self.root.grid_rowconfigure(1, weight=1)
+        self.root.grid_columnconfigure(0, weight=1)
         
         # Initialize database
         self.db = DatabaseManager()
         
         # Initialize backup scheduler
         self.backup_scheduler = BackupScheduler(self.db)
-        self.backup_scheduler.start()
+        
+        # Setup UI
+        self.setup_ui()
+        
+        # Configure window close handler
+        self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
+        
+        # Load logo
+        self.load_logo()
         
         # Configure appearance
         self.setup_appearance()
         
-        # Initialize UI components
-        self.setup_ui()
+        # Add exception handler
+        def handle_exception(exc_type, exc_value, exc_traceback):
+            """Handle uncaught exceptions"""
+            print("An error occurred:")
+            import traceback
+            traceback.print_exception(exc_type, exc_value, exc_traceback)
+            
+            # Show error to user but keep application running
+            messagebox.showerror(
+                "Error",
+                "An error occurred but the application will continue running.\n\n" +
+                str(exc_value)
+            )
+            return True  # Prevent the exception from propagating
+            
+        self.root.report_callback_exception = handle_exception
         
-        # Bind cleanup on window close
-        self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
+        # Keep a reference to prevent garbage collection
+        self._keep_alive = True
         
+        # Schedule a keep-alive check
+        self.root.after(1000, self._check_alive)
+    
+    def _check_alive(self):
+        """Periodic check to ensure window stays alive"""
+        if self._keep_alive and hasattr(self, 'root') and self.root.winfo_exists():
+            # Schedule next check
+            self.root.after(1000, self._check_alive)
+    
     def load_logo(self):
         """Load and set application logo"""
         try:
@@ -96,48 +137,6 @@ class ChiropracticApp:
             background=[("selected", "#3B82F6")],
             foreground=[("selected", "white")]
         )
-
-    def setup_window(self):
-        """Configure main window properties"""
-        # Get screen dimensions
-        screen_width = self.root.winfo_screenwidth()
-        screen_height = self.root.winfo_screenheight()
-        
-        # Calculate window size (80% of screen size)
-        window_width = int(screen_width * 0.8)
-        window_height = int(screen_height * 0.8)
-        
-        # Calculate position to center the window
-        position_x = (screen_width - window_width) // 2
-        position_y = (screen_height - window_height) // 2
-        
-        # Set window size and position
-        self.root.geometry(f"{window_width}x{window_height}+{position_x}+{position_y}")
-        
-        # Set minimum window size (1024x768 or 60% of screen size, whichever is smaller)
-        min_width = min(1024, int(screen_width * 0.6))
-        min_height = min(768, int(screen_height * 0.6))
-        self.root.minsize(min_width, min_height)
-        
-        # Platform-specific window state
-        if sys.platform == "win32":
-            # Windows - start maximized
-            self.root.state('zoomed')
-        elif sys.platform == "darwin":
-            # macOS - use fullscreen
-            self.root.attributes('-fullscreen', True)
-            # Add escape key binding to exit fullscreen
-            self.root.bind('<Escape>', lambda e: self.root.attributes('-fullscreen', False))
-        else:
-            # Linux and others - start with calculated size
-            pass
-        
-        # Configure grid weights for better expansion
-        self.root.grid_columnconfigure(0, weight=1)
-        self.root.grid_rowconfigure(1, weight=1)
-        
-        # Add padding around the main container
-        self.root.configure(padx=20, pady=20)
 
     def setup_ui(self):
         """Initialize and configure UI components"""
@@ -196,24 +195,49 @@ class ChiropracticApp:
         # Set default tab
         self.tab_view.set("Dashboard")
         
-    def run(self):
-        """Start the application"""
-        self.root.mainloop()
-
     def on_closing(self):
         """Handle application closing"""
-        # Stop the backup scheduler
-        if self.backup_scheduler:
-            self.backup_scheduler.stop()
-        
-        # Close database connection
-        if self.db:
-            self.db.close()
-        
-        # Destroy the window
-        self.root.destroy()
+        try:
+            # Set flag to stop keep-alive checks
+            self._keep_alive = False
+            
+            # Stop the backup scheduler
+            if hasattr(self, 'backup_scheduler') and self.backup_scheduler:
+                self.backup_scheduler.stop()
+            
+            # Close database connection
+            if hasattr(self, 'db') and self.db:
+                self.db.close()
+            
+            # Destroy the window
+            if hasattr(self, 'root') and self.root:
+                self.root.quit()
+                self.root.destroy()
+                
+        except Exception as e:
+            print(f"Error during shutdown: {str(e)}")
+            import traceback
+            traceback.print_exc()
+    
+    def run(self):
+        """Start the application"""
+        try:
+            # Start the main event loop
+            self.root.mainloop()
+        except Exception as e:
+            print(f"Critical error in main loop: {str(e)}")
+            import traceback
+            traceback.print_exc()
+        finally:
+            # Ensure clean shutdown
+            self.on_closing()
 
 if __name__ == "__main__":
-    # Create and run application
-    app = ChiropracticApp()
-    app.run() 
+    try:
+        # Create and run application
+        app = ChiropracticApp()
+        app.run()
+    except Exception as e:
+        print(f"Fatal error: {str(e)}")
+        import traceback
+        traceback.print_exc() 

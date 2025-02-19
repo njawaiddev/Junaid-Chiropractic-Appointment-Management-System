@@ -1,0 +1,3 @@
+([('ChiropracticManager',
+   '/Users/naveedjawaid/Documents/M APP/dist/ChiropracticManager',
+   'EXECUTABLE')],)
