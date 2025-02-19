@@ -45,8 +45,10 @@ class ChiropracticApp:
         try:
             script_dir = os.path.dirname(os.path.abspath(__file__))
             logo_path = os.path.join(script_dir, "assets", "logo.png")
+            icon_path = os.path.join(script_dir, "..", "assets", "icon.ico")
+            
             if os.path.exists(logo_path):
-                # Load and resize logo
+                # Load and resize logo for window icon
                 logo_image = Image.open(logo_path)
                 # Resize to a reasonable icon size (e.g., 64x64)
                 logo_image.thumbnail((64, 64))
@@ -54,8 +56,14 @@ class ChiropracticApp:
                 self.logo_photo = ImageTk.PhotoImage(logo_image)
                 # Set as window icon
                 self.root.iconphoto(True, self.logo_photo)
+                
+                # On Windows, also try to set the taskbar icon
+                if sys.platform == "win32" and os.path.exists(icon_path):
+                    self.root.iconbitmap(icon_path)
         except Exception as e:
             print(f"Error loading logo: {str(e)}")
+            import traceback
+            traceback.print_exc()
 
     def setup_appearance(self):
         """Configure application appearance"""

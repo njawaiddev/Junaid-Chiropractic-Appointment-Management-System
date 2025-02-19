@@ -652,12 +652,21 @@ class DashboardFrame(ctk.CTkFrame):
             values = self.tree.item(item)["values"]
             tags = self.tree.item(item)["tags"]
             
-            # Skip if this is a message row or pending tag
-            if not tags or tags[0] == 'message' or tags[0] == 'pending':
+            # Skip if this is a message row
+            if not tags:
                 messagebox.showwarning("Invalid Selection", "Please select a valid appointment to edit.")
                 return
+            
+            # The first tag that's not a status should be the appointment ID
+            appointment_id = None
+            for tag in tags:
+                if tag not in ['pending', 'done', 'cancelled']:
+                    appointment_id = int(tag)
+                    break
                 
-            appointment_id = int(tags[0])  # Convert to integer
+            if not appointment_id:
+                messagebox.showwarning("Invalid Selection", "Could not find appointment ID.")
+                return
             
             # Get the appointment details from the database
             date_obj = datetime.strptime(self.selected_date.strftime("%Y-%m-%d"), "%Y-%m-%d")
@@ -682,7 +691,7 @@ class DashboardFrame(ctk.CTkFrame):
                 
                 # Create initial values dictionary
                 initial_values = {
-                    'id': appointment_id,  # Use the integer appointment ID
+                    'id': appointment_id,
                     'patient_id': appointment_dict['patient_id'],
                     'patient_name': appointment_dict['patient_name'],
                     'date': appointment_dict['appointment_date'],
@@ -771,7 +780,7 @@ class DashboardFrame(ctk.CTkFrame):
                             appt["notes"],
                             "View Notes" if appt["notes"] else ""
                         ),
-                        tags=(status,)
+                        tags=(str(appt["id"]), status)  # Include appointment ID and status in tags
                     )
 
     def show_monthly_view(self):
@@ -807,7 +816,7 @@ class DashboardFrame(ctk.CTkFrame):
                             appt["notes"],
                             "View Notes" if appt["notes"] else ""
                         ),
-                        tags=(status,)
+                        tags=(str(appt["id"]), status)  # Include appointment ID and status in tags
                     )
 
     def view_notes(self, event):

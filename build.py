@@ -15,14 +15,20 @@ def create_assets():
     # Create assets directory if it doesn't exist
     os.makedirs(assets_dir, exist_ok=True)
     
-    # Ensure logo exists
+    # Ensure logo exists and create icon
     logo_path = os.path.join("src", "assets", "logo.png")
     icon_path = os.path.join(assets_dir, "icon.ico")
     
-    if not os.path.exists(icon_path) and os.path.exists(logo_path):
-        from PIL import Image
-        img = Image.open(logo_path)
-        img.save(icon_path, format='ICO')
+    if os.path.exists(logo_path):
+        try:
+            from PIL import Image
+            img = Image.open(logo_path)
+            # Resize to standard icon sizes
+            icon_sizes = [(16,16), (32,32), (48,48), (64,64), (128,128), (256,256)]
+            img.save(icon_path, format='ICO', sizes=icon_sizes)
+            print(f"Created icon file at: {icon_path}")
+        except Exception as e:
+            print(f"Error creating icon: {str(e)}")
 
 def collect_data_files():
     """Collect all necessary data files"""
@@ -79,10 +85,12 @@ def build_exe():
     # Add icon if available
     if os.path.exists(icon_path):
         args.append(f"--icon={icon_path}")
+        print(f"Using icon: {icon_path}")
+    else:
+        print("Warning: No icon file found")
     
     # Add data files
     for src, dst in data_files:
-        # Use absolute paths for data files
         args.append(f"--add-data={src}:{dst}")
     
     # Add hidden imports

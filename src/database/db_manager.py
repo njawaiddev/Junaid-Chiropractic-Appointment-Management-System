@@ -659,4 +659,29 @@ class DatabaseManager:
             print(f"Error getting future appointments: {str(e)}")
             return []
         finally:
-            self.close() 
+            self.close()
+
+    def transaction(self):
+        """Context manager for database transactions"""
+        class Transaction:
+            def __init__(self, db):
+                self.db = db
+            
+            def __enter__(self):
+                self.db.connect()
+                return self.db
+            
+            def __exit__(self, exc_type, exc_val, exc_tb):
+                if exc_type is None:
+                    # No exception occurred, commit the transaction
+                    if self.db.conn:
+                        self.db.conn.commit()
+                else:
+                    # An exception occurred, rollback the transaction
+                    if self.db.conn:
+                        self.db.conn.rollback()
+                # Always close the connection
+                self.db.close()
+                return False  # Re-raise any exceptions
+        
+        return Transaction(self) 

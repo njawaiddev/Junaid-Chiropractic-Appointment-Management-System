@@ -714,9 +714,6 @@ class PatientFrame(ctk.CTkFrame):
             return
         
         try:
-            # Start transaction
-            self.db.connect()
-            
             # Collect all field values
             patient_data = {
                 'title': self.title_var.get(),
@@ -748,44 +745,38 @@ class PatientFrame(ctk.CTkFrame):
             patient_data = {k: v for k, v in patient_data.items() if v}
             
             selected = self.patient_tree.selection()
-            if selected:
-                # Update existing patient
-                patient_id = int(self.patient_tree.item(selected[0])["tags"][0])
-                self.db.update_patient(patient_id, patient_data)
-                
-                # Refresh session history for the updated patient
-                patient = self.db.get_patient(patient_id)
-                self.refresh_session_history(patient.get('session_history', []))
-                
-                messagebox.showinfo("Success", "Patient updated successfully")
-            else:
-                # Add new patient
-                new_patient_id = self.db.add_patient(patient_data)
-                
-                # Refresh session history for the new patient
-                patient = self.db.get_patient(new_patient_id)
-                self.refresh_session_history(patient.get('session_history', []))
-                
-                messagebox.showinfo("Success", "Patient added successfully")
             
-            # Commit transaction
-            self.db.conn.commit()
+            # Use transaction context manager
+            with self.db.transaction() as db:
+                if selected:
+                    # Update existing patient
+                    patient_id = int(self.patient_tree.item(selected[0])["tags"][0])
+                    db.update_patient(patient_id, patient_data)
+                    
+                    # Refresh session history for the updated patient
+                    patient = db.get_patient(patient_id)
+                    self.refresh_session_history(patient.get('session_history', []))
+                    
+                    messagebox.showinfo("Success", "Patient updated successfully")
+                else:
+                    # Add new patient
+                    new_patient_id = db.add_patient(patient_data)
+                    
+                    # Refresh session history for the new patient
+                    patient = db.get_patient(new_patient_id)
+                    self.refresh_session_history(patient.get('session_history', []))
+                    
+                    messagebox.showinfo("Success", "Patient added successfully")
             
             # Refresh UI components
             self.refresh_patient_list()  # Refresh patient list
             self.refresh_callback()      # Refresh dashboard appointments
             
         except Exception as e:
-            # Rollback transaction on error
-            if self.db.conn:
-                self.db.conn.rollback()
             messagebox.showerror("Error", f"Failed to save patient: {str(e)}")
             print(f"Error saving patient: {str(e)}")
             import traceback
             traceback.print_exc()
-        finally:
-            # Ensure connection is closed
-            self.db.close()
     
     def validate_mandatory_fields(self):
         """Validate all mandatory fields"""
