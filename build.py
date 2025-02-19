@@ -107,26 +107,16 @@ def create_inno_setup_script():
     script_dir = os.path.dirname(os.path.abspath(__file__))
     inno_script = os.path.join(script_dir, "installer.iss")
     
-    # Generate a unique GUID for the installer
-    app_guid = str(uuid.uuid4())
-    
-    script_content = f"""
-#define MyAppName "Chiropractic Manager"
-#define MyAppVersion "1.0"
-#define MyAppPublisher "{DEVELOPER_NAME}"
-#define MyAppURL "https://github.com/njawaiddev/Junaid-Chiropractic-Appointment-Management-System"
-#define MyAppExeName "ChiropracticManager.exe"
-
+    script_content = """
 [Setup]
-AppId={{{{""" + app_guid + """}}}}
-AppName={{#MyAppName}}
-AppVersion={{#MyAppVersion}}
-AppPublisher={{#MyAppPublisher}}
-AppPublisherURL={{#MyAppURL}}
-AppSupportURL={{#MyAppURL}}
-AppUpdatesURL={{#MyAppURL}}
-DefaultDirName={{autopf}}\\{{#MyAppName}}
-DefaultGroupName={{#MyAppName}}
+AppName=Chiropractic Manager
+AppVersion=1.0
+AppPublisher=Naveed Jawaid
+AppPublisherURL=https://github.com/njawaiddev/Junaid-Chiropractic-Appointment-Management-System
+AppSupportURL=https://github.com/njawaiddev/Junaid-Chiropractic-Appointment-Management-System
+AppUpdatesURL=https://github.com/njawaiddev/Junaid-Chiropractic-Appointment-Management-System
+DefaultDirName={autopf}\\Chiropractic Manager
+DefaultGroupName=Chiropractic Manager
 AllowNoIcons=yes
 LicenseFile=LICENSE.txt
 OutputDir=installer
@@ -140,22 +130,22 @@ WizardStyle=modern
 Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Tasks]
-Name: "desktopicon"; Description: "{{cm:CreateDesktopIcon}}"; GroupDescription: "{{cm:AdditionalIcons}}"; Flags: unchecked
-Name: "quicklaunchicon"; Description: "{{cm:CreateQuickLaunchIcon}}"; GroupDescription: "{{cm:AdditionalIcons}}"; Flags: unchecked; OnlyBelowVersion: 6.1; Check: not IsAdminInstallMode
+Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
+Name: "quicklaunchicon"; Description: "{cm:CreateQuickLaunchIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked; OnlyBelowVersion: 6.1; Check: not IsAdminInstallMode
 
 [Files]
-Source: "dist\\{{#MyAppExeName}}"; DestDir: "{{app}}"; Flags: ignoreversion
-Source: "assets\\*"; DestDir: "{{app}}\\assets"; Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "LICENSE.txt"; DestDir: "{{app}}"; Flags: ignoreversion
+Source: "dist\\ChiropracticManager.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "assets\\*"; DestDir: "{app}\\assets"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "LICENSE.txt"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
-Name: "{{group}}\\{{#MyAppName}}"; Filename: "{{app}}\\{{#MyAppExeName}}"
-Name: "{{group}}\\{{cm:UninstallProgram,{{#MyAppName}}}}"; Filename: "{{uninstallexe}}"
-Name: "{{autodesktop}}\\{{#MyAppName}}"; Filename: "{{app}}\\{{#MyAppExeName}}"; Tasks: desktopicon
-Name: "{{userappdata}}\\Microsoft\\Internet Explorer\\Quick Launch\\{{#MyAppName}}"; Filename: "{{app}}\\{{#MyAppExeName}}"; Tasks: quicklaunchicon
+Name: "{group}\\Chiropractic Manager"; Filename: "{app}\\ChiropracticManager.exe"
+Name: "{group}\\{cm:UninstallProgram,Chiropractic Manager}"; Filename: "{uninstallexe}"
+Name: "{autodesktop}\\Chiropractic Manager"; Filename: "{app}\\ChiropracticManager.exe"; Tasks: desktopicon
+Name: "{userappdata}\\Microsoft\\Internet Explorer\\Quick Launch\\Chiropractic Manager"; Filename: "{app}\\ChiropracticManager.exe"; Tasks: quicklaunchicon
 
 [Run]
-Filename: "{{app}}\\{{#MyAppExeName}}"; Description: "{{cm:LaunchProgram,{{#StringChange(MyAppName, '&', '&&')}}}}"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\\ChiropracticManager.exe"; Description: "{cm:LaunchProgram,Chiropractic Manager}"; Flags: nowait postinstall skipifsilent
 """
     
     with open(inno_script, "w") as f:
