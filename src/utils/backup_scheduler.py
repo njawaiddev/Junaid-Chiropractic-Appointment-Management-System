@@ -8,7 +8,7 @@ import time
 class BackupScheduler:
     def __init__(self, db_manager):
         self.db = db_manager
-        self.backup_config_file = "backup_config.json"
+        self.backup_config_file = os.path.join(self.db._get_app_data_dir(), "backup_config.json")
         self.running = False
         self.thread = None
         self.load_config()
@@ -16,6 +16,9 @@ class BackupScheduler:
     def load_config(self):
         """Load backup configuration"""
         try:
+            # Ensure directory exists
+            os.makedirs(os.path.dirname(self.backup_config_file), exist_ok=True)
+            
             if os.path.exists(self.backup_config_file):
                 with open(self.backup_config_file, 'r') as f:
                     self.config = json.load(f)
@@ -23,14 +26,15 @@ class BackupScheduler:
                 self.config = {
                     'schedule': 'never',
                     'last_backup': None,
-                    'backup_path': os.path.join(os.path.expanduser('~'), 'ChiropracticBackups')
+                    'backup_path': os.path.join(self.db._get_app_data_dir(), 'backups')
                 }
+                self.save_config()
         except Exception as e:
             print(f"Error loading backup config: {str(e)}")
             self.config = {
                 'schedule': 'never',
                 'last_backup': None,
-                'backup_path': os.path.join(os.path.expanduser('~'), 'ChiropracticBackups')
+                'backup_path': os.path.join(self.db._get_app_data_dir(), 'backups')
             }
     
     def start(self):
@@ -112,12 +116,11 @@ class BackupScheduler:
             self.db.close()
             
             # Copy database file
-            shutil.copy2("chiropractic.db", backup_file)
+            shutil.copy2(self.db.db_path, backup_file)
             
             # Update last backup time
             self.config['last_backup'] = datetime.now().isoformat()
-            with open(self.backup_config_file, 'w') as f:
-                json.dump(self.config, f)
+            self.save_config()
             
             print(f"Automatic backup completed: {backup_file}")
             
@@ -127,4 +130,12 @@ class BackupScheduler:
         finally:
             # Ensure we have a database connection
             if not self.db.conn:
-                self.db.connect() 
+                self.db.connect()
+    
+    def save_config(self):
+        """Save backup configuration"""
+        try:
+            with open(self.backup_config_file, 'w') as f:
+                json.dump(self.config, f)
+        except Exception as e:
+            print(f"Error saving backup config: {str(e)}") 

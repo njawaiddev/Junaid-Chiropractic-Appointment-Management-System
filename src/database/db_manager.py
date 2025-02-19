@@ -2,6 +2,7 @@ import sqlite3
 from datetime import datetime
 import calendar
 from pathlib import Path
+import os
 from .schema import (
     CREATE_PATIENTS_TABLE,
     CREATE_APPOINTMENTS_TABLE_TEMPLATE,
@@ -16,17 +17,38 @@ from .schema import (
 )
 
 class DatabaseManager:
-    def __init__(self, db_path="chiropractic.db"):
-        self.db_path = db_path
+    def __init__(self, db_path=None):
+        """Initialize database manager with proper path handling"""
+        if db_path is None:
+            # Get the appropriate application data directory
+            app_data = self._get_app_data_dir()
+            self.db_path = os.path.join(app_data, "chiropractic.db")
+        else:
+            self.db_path = db_path
+            
+        # Ensure directory exists
+        os.makedirs(os.path.dirname(self.db_path), exist_ok=True)
+        
         self.conn = None
         self.cursor = None
         self.initialize_database()
 
+    def _get_app_data_dir(self):
+        """Get the appropriate application data directory based on OS"""
+        if os.name == 'nt':  # Windows
+            app_data = os.path.join(os.environ['LOCALAPPDATA'], 'ChiropracticManager')
+        else:  # macOS and Linux
+            app_data = os.path.join(os.path.expanduser('~'), '.chiropracticmanager')
+        return app_data
+
     def connect(self):
-        """Establish database connection"""
-        self.conn = sqlite3.connect(self.db_path)
-        self.conn.row_factory = sqlite3.Row
-        self.cursor = self.conn.cursor()
+        """Establish database connection with proper error handling"""
+        try:
+            self.conn = sqlite3.connect(self.db_path)
+            self.conn.row_factory = sqlite3.Row
+            self.cursor = self.conn.cursor()
+        except sqlite3.Error as e:
+            raise Exception(f"Failed to connect to database: {str(e)}")
 
     def close(self):
         """Close database connection"""

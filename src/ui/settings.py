@@ -11,7 +11,7 @@ class SettingsFrame(ctk.CTkFrame):
     def __init__(self, parent, db):
         super().__init__(parent)
         self.db = db
-        self.backup_config_file = "backup_config.json"
+        self.backup_config_file = os.path.join(self.db._get_app_data_dir(), "backup_config.json")
         self.load_backup_config()
         
         # Configure grid
@@ -26,14 +26,17 @@ class SettingsFrame(ctk.CTkFrame):
     def load_backup_config(self):
         """Load backup configuration from file"""
         try:
+            # Ensure directory exists
+            os.makedirs(os.path.dirname(self.backup_config_file), exist_ok=True)
+            
             if os.path.exists(self.backup_config_file):
                 with open(self.backup_config_file, 'r') as f:
                     self.backup_config = json.load(f)
             else:
                 self.backup_config = {
-                    'schedule': 'never',  # never, daily, weekly, monthly
+                    'schedule': 'never',
                     'last_backup': None,
-                    'backup_path': os.path.join(os.path.expanduser('~'), 'ChiropracticBackups')
+                    'backup_path': os.path.join(self.db._get_app_data_dir(), 'backups')
                 }
                 self.save_backup_config()
         except Exception as e:
@@ -41,7 +44,7 @@ class SettingsFrame(ctk.CTkFrame):
             self.backup_config = {
                 'schedule': 'never',
                 'last_backup': None,
-                'backup_path': os.path.join(os.path.expanduser('~'), 'ChiropracticBackups')
+                'backup_path': os.path.join(self.db._get_app_data_dir(), 'backups')
             }
     
     def save_backup_config(self):
@@ -186,7 +189,7 @@ class SettingsFrame(ctk.CTkFrame):
             self.db.close()
             
             # Copy database file
-            shutil.copy2("chiropractic.db", backup_file)
+            shutil.copy2(self.db.db_path, backup_file)
             
             # Update last backup time
             self.backup_config['last_backup'] = datetime.now().isoformat()
