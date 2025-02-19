@@ -95,9 +95,24 @@ class ChiropracticApp:
         screen_width = self.root.winfo_screenwidth()
         screen_height = self.root.winfo_screenheight()
         
-        # Set window size to full screen
-        self.root.geometry(f"{screen_width}x{screen_height}+0+0")
-        self.root.minsize(1024, 768)  # Set minimum window size
+        # Calculate window size (80% of screen size)
+        window_width = int(screen_width * 0.8)
+        window_height = int(screen_height * 0.8)
+        
+        # Calculate position to center the window
+        position_x = (screen_width - window_width) // 2
+        position_y = (screen_height - window_height) // 2
+        
+        # Set window size and position
+        self.root.geometry(f"{window_width}x{window_height}+{position_x}+{position_y}")
+        
+        # Set minimum window size (1024x768 or 60% of screen size, whichever is smaller)
+        min_width = min(1024, int(screen_width * 0.6))
+        min_height = min(768, int(screen_height * 0.6))
+        self.root.minsize(min_width, min_height)
+        
+        # Allow window to be maximized
+        self.root.state('zoomed')
         
         # Configure grid weights for better expansion
         self.root.grid_columnconfigure(0, weight=1)
