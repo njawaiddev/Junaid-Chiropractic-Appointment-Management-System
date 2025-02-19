@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleDisplayName</key>
+	<string>ChiropracticManager_Setup_v4</string>
+	<key>CFBundleExecutable</key>
+	<string>ChiropracticManager_Setup_v4</string>
+	<key>CFBundleIconFile</key>
+	<string>generated-13d40e9a5061bfc88e8af7b2c875185a78ab98c643cbc80a383c8b9e76da701e.icns</string>
+	<key>CFBundleIdentifier</key>
+	<string>ChiropracticManager_Setup_v4</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleName</key>
+	<string>ChiropracticManager_Setup_v4</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>0.0.0</string>
+	<key>NSHighResolutionCapable</key>
+	<true/>
+</dict>
+</plist>
