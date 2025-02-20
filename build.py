@@ -208,7 +208,8 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 Name: "quicklaunchicon"; Description: "{cm:CreateQuickLaunchIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked; OnlyBelowVersion: 6.1; Check: not IsAdminInstallMode
 
 [Files]
-Source: "dist\\ChiropracticManager.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "dist\\ChiropracticManager\\ChiropracticManager.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "dist\\ChiropracticManager\\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "assets\\*"; DestDir: "{app}\\assets"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "LICENSE.txt"; DestDir: "{app}"; Flags: ignoreversion
 
