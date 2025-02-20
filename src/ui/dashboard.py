@@ -1209,11 +1209,13 @@ class AppointmentDialog(ctk.CTkToplevel):
         
         # Time selection combobox
         self.time_var = tk.StringVar()
-        self.time_combo = ttk.Combobox(
+        self.time_combo = ctk.CTkComboBox(
             datetime_frame,
-            textvariable=self.time_var,
             values=self.get_time_slots(),
-            state="readonly"
+            variable=self.time_var,
+            state="readonly",
+            width=120,
+            height=32
         )
         self.time_combo.grid(row=1, column=1, padx=5, pady=5, sticky="ew")
         
@@ -1248,11 +1250,13 @@ class AppointmentDialog(ctk.CTkToplevel):
         # Status selection
         self.status_var = tk.StringVar(value="confirmed")  # Set default to confirmed
         statuses = ["confirmed", "pending", "done", "cancelled"]
-        self.status_combo = ttk.Combobox(
+        self.status_combo = ctk.CTkComboBox(
             status_frame,
-            textvariable=self.status_var,
             values=statuses,
-            state="readonly"
+            variable=self.status_var,
+            state="readonly",
+            width=120,
+            height=32
         )
         self.status_combo.grid(row=0, column=1, padx=5, pady=5, sticky="ew")
         
