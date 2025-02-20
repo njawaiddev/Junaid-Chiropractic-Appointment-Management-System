@@ -1384,16 +1384,19 @@ class AppointmentDialog(ctk.CTkToplevel):
     def get_time_slots(self):
         """Generate time slots for the combobox"""
         slots = []
+        
+        # Start at 9:00 AM today
         start = datetime.strptime("09:00", "%H:%M")
-        end = datetime.strptime("17:00", "%H:%M")
+        # End at 8:00 AM next day
+        end = datetime.strptime("08:00", "%H:%M") + timedelta(days=1)
         current = start
         
         while current <= end:
             # Format in 12-hour with AM/PM
             time_12h = current.strftime("%I:%M %p").lstrip("0")
             slots.append(time_12h)
-            # Use 45-minute intervals
-            current += timedelta(minutes=45)
+            # Use 15-minute intervals
+            current += timedelta(minutes=15)
         
         return slots
 

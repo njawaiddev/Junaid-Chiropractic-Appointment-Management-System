@@ -5,11 +5,11 @@ a = Analysis(
     ['src/main.py'],
     pathex=[],
     binaries=[],
-    datas=[('Info.plist', '.'), ('src', 'src'), ('assets', 'assets')],
-    hiddenimports=['PIL', 'PIL._tkinter_finder', 'tkcalendar', 'babel.numbers', 'customtkinter', 'Foundation', 'objc', 'AppKit', 'PyObjCTools', 'darkdetect', 'google_auth_oauthlib', 'google.auth.transport.requests'],
+    datas=[('src/assets', 'src/assets'), ('src/database', 'src/database'), ('src/ui', 'src/ui'), ('src/utils', 'src/utils')],
+    hiddenimports=[],
     hookspath=[],
     hooksconfig={},
-    runtime_hooks=['src/utils/macos_runtime.py'],
+    runtime_hooks=[],
     excludes=[],
     noarchive=False,
     optimize=0,
@@ -29,8 +29,8 @@ exe = EXE(
     console=False,
     disable_windowed_traceback=False,
     argv_emulation=False,
-    target_arch='arm64',
-    codesign_identity='-',
+    target_arch=None,
+    codesign_identity=None,
     entitlements_file=None,
 )
 coll = COLLECT(
@@ -46,5 +46,5 @@ app = BUNDLE(
     coll,
     name='ChiropracticManager.app',
     icon=None,
-    bundle_identifier='com.naveedjawaid.chiropracticmanager',
+    bundle_identifier=None,
 )
