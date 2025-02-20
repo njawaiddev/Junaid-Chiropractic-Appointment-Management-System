@@ -1075,6 +1075,9 @@ class AppointmentDialog(ctk.CTkToplevel):
     def __init__(self, parent, db, date, edit_mode=False, initial_values=None):
         super().__init__(parent)
         
+        # Set initial window size
+        self.geometry("500x700")  # Set a fixed initial size that fits all content
+        
         # Initialize constants
         self.APPOINTMENT_DURATION = 45  # Duration in minutes
         
@@ -1576,8 +1579,9 @@ class AppointmentDialog(ctk.CTkToplevel):
     def center_window(self):
         """Center the window on the screen"""
         self.update_idletasks()
-        width = self.winfo_width()
-        height = self.winfo_height()
+        # Ensure minimum size
+        width = max(500, self.winfo_width())
+        height = max(700, self.winfo_height())
         x = (self.winfo_screenwidth() // 2) - (width // 2)
         y = (self.winfo_screenheight() // 2) - (height // 2)
         self.geometry(f'{width}x{height}+{x}+{y}')
