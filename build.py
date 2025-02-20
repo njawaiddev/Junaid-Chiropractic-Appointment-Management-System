@@ -146,18 +146,14 @@ def build_exe():
         "--collect-all=oauthlib",
         "--collect-all=requests_oauthlib",
         # Add data files
-        "--add-data=src;src",
-        "--add-data=assets;assets",
-        # Add OAuth package data
-        "--add-data=venv/Lib/site-packages/google_auth_oauthlib;google_auth_oauthlib",
-        "--add-data=venv/Lib/site-packages/oauthlib;oauthlib",
-        "--add-data=venv/Lib/site-packages/requests_oauthlib;requests_oauthlib"
+        f"--add-data={os.path.join(script_dir, 'src')};src",
+        f"--add-data={os.path.join(script_dir, 'assets')};assets"
     ]
     
     # Add credentials.json if it exists
     credentials_file = os.path.join(script_dir, "credentials.json")
     if os.path.exists(credentials_file):
-        args.append("--add-data=credentials.json;.")
+        args.append(f"--add-data={credentials_file};.")
     
     # Run PyInstaller
     PyInstaller.__main__.run(args)
