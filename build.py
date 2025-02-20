@@ -104,9 +104,6 @@ def build_exe():
         if os.path.exists(path):
             shutil.rmtree(path)
     
-    # Set path separator based on platform
-    separator = ';' if sys.platform == "win32" else ':'
-    
     # Base PyInstaller arguments
     args = [
         main_script,
@@ -118,6 +115,11 @@ def build_exe():
         f"--distpath={dist_path}",
         f"--workpath={build_path}",
         f"--specpath={build_path}",
+        f"--icon={icon_path}",
+        # Windows-specific imports
+        "--hidden-import=win32api",
+        "--hidden-import=win32con",
+        "--hidden-import=win32gui",
         # Hidden imports for Google OAuth
         "--hidden-import=google_auth_oauthlib.flow",
         "--hidden-import=google.auth.transport.requests",
@@ -129,12 +131,12 @@ def build_exe():
         "--hidden-import=googleapiclient",
         "--hidden-import=PIL._tkinter_finder",
         "--hidden-import=babel.numbers",
-        "--hidden-import=google.auth.transport.requests",
-        "--hidden-import=google.oauth2.credentials",
-        "--hidden-import=google_auth_oauthlib.flow",
         "--hidden-import=requests_oauthlib",
         "--hidden-import=oauthlib",
         "--hidden-import=oauthlib.oauth2",
+        "--hidden-import=google_auth_oauthlib.session",
+        "--hidden-import=google_auth_oauthlib.helpers",
+        "--hidden-import=google_auth_oauthlib.interactive",
         # Collect all required modules
         "--collect-all=google_auth_oauthlib",
         "--collect-all=google_auth_httplib2",
@@ -144,23 +146,18 @@ def build_exe():
         "--collect-all=oauthlib",
         "--collect-all=requests_oauthlib",
         # Add data files
-        f"--add-data={os.path.join(script_dir, 'src')}{separator}src",
-        f"--add-data={os.path.join(script_dir, 'assets')}{separator}assets"
+        "--add-data=src;src",
+        "--add-data=assets;assets",
+        # Add OAuth package data
+        "--add-data=venv/Lib/site-packages/google_auth_oauthlib;google_auth_oauthlib",
+        "--add-data=venv/Lib/site-packages/oauthlib;oauthlib",
+        "--add-data=venv/Lib/site-packages/requests_oauthlib;requests_oauthlib"
     ]
     
     # Add credentials.json if it exists
     credentials_file = os.path.join(script_dir, "credentials.json")
     if os.path.exists(credentials_file):
-        args.append(f"--add-data={credentials_file}{separator}.")
-    
-    # Add platform-specific arguments
-    if sys.platform == "win32":
-        args.extend([
-            f"--icon={icon_path}",
-            "--hidden-import=win32api",
-            "--hidden-import=win32con",
-            "--hidden-import=win32gui"
-        ])
+        args.append("--add-data=credentials.json;.")
     
     # Run PyInstaller
     PyInstaller.__main__.run(args)
@@ -168,13 +165,12 @@ def build_exe():
     print("\nBuild completed successfully!")
     print(f"Executable can be found in: {dist_path}")
     
-    # For Windows, create Inno Setup script
-    if sys.platform == "win32":
-        create_inno_setup_script()
-        print("\nNext steps:")
-        print("1. Install Inno Setup from: https://jrsoftware.org/isdl.php")
-        print("2. Compile installer.iss with Inno Setup to create the installer")
-        print("3. The installer will be created in the 'installer' directory")
+    # Create Inno Setup script
+    create_inno_setup_script()
+    print("\nNext steps:")
+    print("1. Install Inno Setup from: https://jrsoftware.org/isdl.php")
+    print("2. Compile installer.iss with Inno Setup to create the installer")
+    print("3. The installer will be created in the 'installer' directory")
 
 def create_inno_setup_script():
     """Create Inno Setup script for Windows installer"""
