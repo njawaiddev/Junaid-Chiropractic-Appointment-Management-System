@@ -42,7 +42,9 @@ jobs:
         
     - name: Build executable
       run: |
-        python -c "import PyInstaller.__main__; PyInstaller.__main__.run(['src/main.py', '--name=ChiropracticManager', '--onedir', '--windowed', '--icon=assets/icon.ico', '--add-data=src;src', '--add-data=assets;assets'])"
+        Remove-Item -Path "dist" -Recurse -Force -ErrorAction SilentlyContinue
+        Remove-Item -Path "build" -Recurse -Force -ErrorAction SilentlyContinue
+        python -c "import PyInstaller.__main__; PyInstaller.__main__.run(['src/main.py', '--name=ChiropracticManager', '--onedir', '--windowed', '--icon=assets/icon.ico', '--add-data=src;src', '--add-data=assets;assets', '--noconfirm', '--clean'])"
       shell: pwsh
       
     - name: Install Inno Setup
@@ -52,6 +54,7 @@ jobs:
       
     - name: Build installer
       run: |
+        New-Item -ItemType Directory -Path "installer" -Force
         & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer.iss
       shell: pwsh
       
