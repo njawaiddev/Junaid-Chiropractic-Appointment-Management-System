@@ -1,3 +1,0 @@
-([('ChiropracticManager_Setup_v4',
-   '/Users/naveedjawaid/Documents/M APP/dist/ChiropracticManager_Setup_v4',
-   'EXECUTABLE')],)

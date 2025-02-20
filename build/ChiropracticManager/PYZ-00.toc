@@ -1,5 +1,57 @@
 ('/Users/naveedjawaid/Documents/M APP/build/ChiropracticManager/PYZ-00.pyz',
- [('PIL',
+ [('AppKit',
+   '/Users/naveedjawaid/Documents/M '
+   'APP/venv/lib/python3.13/site-packages/AppKit/__init__.py',
+   'PYMODULE'),
+  ('AppKit._metadata',
+   '/Users/naveedjawaid/Documents/M '
+   'APP/venv/lib/python3.13/site-packages/AppKit/_metadata.py',
+   'PYMODULE'),
+  ('AppKit._nsapp',
+   '/Users/naveedjawaid/Documents/M '
+   'APP/venv/lib/python3.13/site-packages/AppKit/_nsapp.py',
+   'PYMODULE'),
+  ('CoreFoundation',
+   '/Users/naveedjawaid/Documents/M '
+   'APP/venv/lib/python3.13/site-packages/CoreFoundation/__init__.py',
+   'PYMODULE'),
+  ('CoreFoundation._metadata',
+   '/Users/naveedjawaid/Documents/M '
+   'APP/venv/lib/python3.13/site-packages/CoreFoundation/_metadata.py',
+   'PYMODULE'),
+  ('CoreFoundation._static',
+   '/Users/naveedjawaid/Documents/M '
+   'APP/venv/lib/python3.13/site-packages/CoreFoundation/_static.py',
+   'PYMODULE'),
+  ('Foundation',
+   '/Users/naveedjawaid/Documents/M '
+   'APP/venv/lib/python3.13/site-packages/Foundation/__init__.py',
+   'PYMODULE'),
+  ('Foundation._context',
+   '/Users/naveedjawaid/Documents/M '
+   'APP/venv/lib/python3.13/site-packages/Foundation/_context.py',
+   'PYMODULE'),
+  ('Foundation._functiondefines',
+   '/Users/naveedjawaid/Documents/M '
+   'APP/venv/lib/python3.13/site-packages/Foundation/_functiondefines.py',
+   'PYMODULE'),
+  ('Foundation._metadata',
+   '/Users/naveedjawaid/Documents/M '
+   'APP/venv/lib/python3.13/site-packages/Foundation/_metadata.py',
+   'PYMODULE'),
+  ('Foundation._nsindexset',
+   '/Users/naveedjawaid/Documents/M '
+   'APP/venv/lib/python3.13/site-packages/Foundation/_nsindexset.py',
+   'PYMODULE'),
+  ('Foundation._nsobject',
+   '/Users/naveedjawaid/Documents/M '
+   'APP/venv/lib/python3.13/site-packages/Foundation/_nsobject.py',
+   'PYMODULE'),
+  ('Foundation._nsurl',
+   '/Users/naveedjawaid/Documents/M '
+   'APP/venv/lib/python3.13/site-packages/Foundation/_nsurl.py',
+   'PYMODULE'),
+  ('PIL',
    '/Users/naveedjawaid/Documents/M '
    'APP/venv/lib/python3.13/site-packages/PIL/__init__.py',
    'PYMODULE'),
@@ -302,6 +354,19 @@
   ('PIL.features',
    '/Users/naveedjawaid/Documents/M '
    'APP/venv/lib/python3.13/site-packages/PIL/features.py',
+   'PYMODULE'),
+  ('PyObjCTools', '-', 'PYMODULE'),
+  ('PyObjCTools.AppHelper',
+   '/Users/naveedjawaid/Documents/M '
+   'APP/venv/lib/python3.13/site-packages/PyObjCTools/AppHelper.py',
+   'PYMODULE'),
+  ('PyObjCTools.KeyValueCoding',
+   '/Users/naveedjawaid/Documents/M '
+   'APP/venv/lib/python3.13/site-packages/PyObjCTools/KeyValueCoding.py',
+   'PYMODULE'),
+  ('PyObjCTools.MachSignals',
+   '/Users/naveedjawaid/Documents/M '
+   'APP/venv/lib/python3.13/site-packages/PyObjCTools/MachSignals.py',
    'PYMODULE'),
   ('__future__',
    '/opt/homebrew/Cellar/python@3.13/3.13.2/Frameworks/Python.framework/Versions/3.13/lib/python3.13/__future__.py',
@@ -1046,6 +1111,10 @@
    '/Users/naveedjawaid/Documents/M '
    'APP/venv/lib/python3.13/site-packages/google/auth/_cloud_sdk.py',
    'PYMODULE'),
+  ('google.auth._credentials_async',
+   '/Users/naveedjawaid/Documents/M '
+   'APP/venv/lib/python3.13/site-packages/google/auth/_credentials_async.py',
+   'PYMODULE'),
   ('google.auth._credentials_base',
    '/Users/naveedjawaid/Documents/M '
    'APP/venv/lib/python3.13/site-packages/google/auth/_credentials_base.py',
@@ -1053,6 +1122,10 @@
   ('google.auth._default',
    '/Users/naveedjawaid/Documents/M '
    'APP/venv/lib/python3.13/site-packages/google/auth/_default.py',
+   'PYMODULE'),
+  ('google.auth._default_async',
+   '/Users/naveedjawaid/Documents/M '
+   'APP/venv/lib/python3.13/site-packages/google/auth/_default_async.py',
    'PYMODULE'),
   ('google.auth._exponential_backoff',
    '/Users/naveedjawaid/Documents/M '
@@ -1062,6 +1135,14 @@
    '/Users/naveedjawaid/Documents/M '
    'APP/venv/lib/python3.13/site-packages/google/auth/_helpers.py',
    'PYMODULE'),
+  ('google.auth._jwt_async',
+   '/Users/naveedjawaid/Documents/M '
+   'APP/venv/lib/python3.13/site-packages/google/auth/_jwt_async.py',
+   'PYMODULE'),
+  ('google.auth._oauth2client',
+   '/Users/naveedjawaid/Documents/M '
+   'APP/venv/lib/python3.13/site-packages/google/auth/_oauth2client.py',
+   'PYMODULE'),
   ('google.auth._refresh_worker',
    '/Users/naveedjawaid/Documents/M '
    'APP/venv/lib/python3.13/site-packages/google/auth/_refresh_worker.py',
@@ -1069,6 +1150,26 @@
   ('google.auth._service_account_info',
    '/Users/naveedjawaid/Documents/M '
    'APP/venv/lib/python3.13/site-packages/google/auth/_service_account_info.py',
+   'PYMODULE'),
+  ('google.auth.aio',
+   '/Users/naveedjawaid/Documents/M '
+   'APP/venv/lib/python3.13/site-packages/google/auth/aio/__init__.py',
+   'PYMODULE'),
+  ('google.auth.aio.credentials',
+   '/Users/naveedjawaid/Documents/M '
+   'APP/venv/lib/python3.13/site-packages/google/auth/aio/credentials.py',
+   'PYMODULE'),
+  ('google.auth.aio.transport',
+   '/Users/naveedjawaid/Documents/M '
+   'APP/venv/lib/python3.13/site-packages/google/auth/aio/transport/__init__.py',
+   'PYMODULE'),
+  ('google.auth.aio.transport.aiohttp',
+   '/Users/naveedjawaid/Documents/M '
+   'APP/venv/lib/python3.13/site-packages/google/auth/aio/transport/aiohttp.py',
+   'PYMODULE'),
+  ('google.auth.aio.transport.sessions',
+   '/Users/naveedjawaid/Documents/M '
+   'APP/venv/lib/python3.13/site-packages/google/auth/aio/transport/sessions.py',
    'PYMODULE'),
   ('google.auth.api_key',
    '/Users/naveedjawaid/Documents/M '
@@ -1106,6 +1207,10 @@
    '/Users/naveedjawaid/Documents/M '
    'APP/venv/lib/python3.13/site-packages/google/auth/crypt/_cryptography_rsa.py',
    'PYMODULE'),
+  ('google.auth.crypt._helpers',
+   '/Users/naveedjawaid/Documents/M '
+   'APP/venv/lib/python3.13/site-packages/google/auth/crypt/_helpers.py',
+   'PYMODULE'),
   ('google.auth.crypt._python_rsa',
    '/Users/naveedjawaid/Documents/M '
    'APP/venv/lib/python3.13/site-packages/google/auth/crypt/_python_rsa.py',
@@ -1121,6 +1226,10 @@
   ('google.auth.crypt.rsa',
    '/Users/naveedjawaid/Documents/M '
    'APP/venv/lib/python3.13/site-packages/google/auth/crypt/rsa.py',
+   'PYMODULE'),
+  ('google.auth.downscoped',
+   '/Users/naveedjawaid/Documents/M '
+   'APP/venv/lib/python3.13/site-packages/google/auth/downscoped.py',
    'PYMODULE'),
   ('google.auth.environment_vars',
    '/Users/naveedjawaid/Documents/M '
@@ -1166,6 +1275,10 @@
    '/Users/naveedjawaid/Documents/M '
    'APP/venv/lib/python3.13/site-packages/google/auth/transport/__init__.py',
    'PYMODULE'),
+  ('google.auth.transport._aiohttp_requests',
+   '/Users/naveedjawaid/Documents/M '
+   'APP/venv/lib/python3.13/site-packages/google/auth/transport/_aiohttp_requests.py',
+   'PYMODULE'),
   ('google.auth.transport._custom_tls_signer',
    '/Users/naveedjawaid/Documents/M '
    'APP/venv/lib/python3.13/site-packages/google/auth/transport/_custom_tls_signer.py',
@@ -1178,6 +1291,14 @@
    '/Users/naveedjawaid/Documents/M '
    'APP/venv/lib/python3.13/site-packages/google/auth/transport/_mtls_helper.py',
    'PYMODULE'),
+  ('google.auth.transport._requests_base',
+   '/Users/naveedjawaid/Documents/M '
+   'APP/venv/lib/python3.13/site-packages/google/auth/transport/_requests_base.py',
+   'PYMODULE'),
+  ('google.auth.transport.grpc',
+   '/Users/naveedjawaid/Documents/M '
+   'APP/venv/lib/python3.13/site-packages/google/auth/transport/grpc.py',
+   'PYMODULE'),
   ('google.auth.transport.mtls',
    '/Users/naveedjawaid/Documents/M '
    'APP/venv/lib/python3.13/site-packages/google/auth/transport/mtls.py',
@@ -1185,6 +1306,10 @@
   ('google.auth.transport.requests',
    '/Users/naveedjawaid/Documents/M '
    'APP/venv/lib/python3.13/site-packages/google/auth/transport/requests.py',
+   'PYMODULE'),
+  ('google.auth.transport.urllib3',
+   '/Users/naveedjawaid/Documents/M '
+   'APP/venv/lib/python3.13/site-packages/google/auth/transport/urllib3.py',
    'PYMODULE'),
   ('google.auth.version',
    '/Users/naveedjawaid/Documents/M '
@@ -1198,6 +1323,26 @@
    '/Users/naveedjawaid/Documents/M '
    'APP/venv/lib/python3.13/site-packages/google/oauth2/_client.py',
    'PYMODULE'),
+  ('google.oauth2._client_async',
+   '/Users/naveedjawaid/Documents/M '
+   'APP/venv/lib/python3.13/site-packages/google/oauth2/_client_async.py',
+   'PYMODULE'),
+  ('google.oauth2._credentials_async',
+   '/Users/naveedjawaid/Documents/M '
+   'APP/venv/lib/python3.13/site-packages/google/oauth2/_credentials_async.py',
+   'PYMODULE'),
+  ('google.oauth2._id_token_async',
+   '/Users/naveedjawaid/Documents/M '
+   'APP/venv/lib/python3.13/site-packages/google/oauth2/_id_token_async.py',
+   'PYMODULE'),
+  ('google.oauth2._reauth_async',
+   '/Users/naveedjawaid/Documents/M '
+   'APP/venv/lib/python3.13/site-packages/google/oauth2/_reauth_async.py',
+   'PYMODULE'),
+  ('google.oauth2._service_account_async',
+   '/Users/naveedjawaid/Documents/M '
+   'APP/venv/lib/python3.13/site-packages/google/oauth2/_service_account_async.py',
+   'PYMODULE'),
   ('google.oauth2.challenges',
    '/Users/naveedjawaid/Documents/M '
    'APP/venv/lib/python3.13/site-packages/google/oauth2/challenges.py',
@@ -1209,6 +1354,10 @@
   ('google.oauth2.gdch_credentials',
    '/Users/naveedjawaid/Documents/M '
    'APP/venv/lib/python3.13/site-packages/google/oauth2/gdch_credentials.py',
+   'PYMODULE'),
+  ('google.oauth2.id_token',
+   '/Users/naveedjawaid/Documents/M '
+   'APP/venv/lib/python3.13/site-packages/google/oauth2/id_token.py',
    'PYMODULE'),
   ('google.oauth2.reauth',
    '/Users/naveedjawaid/Documents/M '
@@ -1258,6 +1407,14 @@
    '/Users/naveedjawaid/Documents/M '
    'APP/venv/lib/python3.13/site-packages/google_auth_oauthlib/interactive.py',
    'PYMODULE'),
+  ('google_auth_oauthlib.tool',
+   '/Users/naveedjawaid/Documents/M '
+   'APP/venv/lib/python3.13/site-packages/google_auth_oauthlib/tool/__init__.py',
+   'PYMODULE'),
+  ('google_auth_oauthlib.tool.__main__',
+   '/Users/naveedjawaid/Documents/M '
+   'APP/venv/lib/python3.13/site-packages/google_auth_oauthlib/tool/__main__.py',
+   'PYMODULE'),
   ('googleapiclient',
    '/Users/naveedjawaid/Documents/M '
    'APP/venv/lib/python3.13/site-packages/googleapiclient/__init__.py',
@@ -1269,6 +1426,10 @@
   ('googleapiclient._helpers',
    '/Users/naveedjawaid/Documents/M '
    'APP/venv/lib/python3.13/site-packages/googleapiclient/_helpers.py',
+   'PYMODULE'),
+  ('googleapiclient.channel',
+   '/Users/naveedjawaid/Documents/M '
+   'APP/venv/lib/python3.13/site-packages/googleapiclient/channel.py',
    'PYMODULE'),
   ('googleapiclient.discovery',
    '/Users/naveedjawaid/Documents/M '
@@ -1305,6 +1466,10 @@
   ('googleapiclient.model',
    '/Users/naveedjawaid/Documents/M '
    'APP/venv/lib/python3.13/site-packages/googleapiclient/model.py',
+   'PYMODULE'),
+  ('googleapiclient.sample_tools',
+   '/Users/naveedjawaid/Documents/M '
+   'APP/venv/lib/python3.13/site-packages/googleapiclient/sample_tools.py',
    'PYMODULE'),
   ('googleapiclient.schema',
    '/Users/naveedjawaid/Documents/M '
@@ -2332,6 +2497,126 @@
   ('oauthlib.uri_validate',
    '/Users/naveedjawaid/Documents/M '
    'APP/venv/lib/python3.13/site-packages/oauthlib/uri_validate.py',
+   'PYMODULE'),
+  ('objc',
+   '/Users/naveedjawaid/Documents/M '
+   'APP/venv/lib/python3.13/site-packages/objc/__init__.py',
+   'PYMODULE'),
+  ('objc._bridges',
+   '/Users/naveedjawaid/Documents/M '
+   'APP/venv/lib/python3.13/site-packages/objc/_bridges.py',
+   'PYMODULE'),
+  ('objc._bridgesupport',
+   '/Users/naveedjawaid/Documents/M '
+   'APP/venv/lib/python3.13/site-packages/objc/_bridgesupport.py',
+   'PYMODULE'),
+  ('objc._callable_docstr',
+   '/Users/naveedjawaid/Documents/M '
+   'APP/venv/lib/python3.13/site-packages/objc/_callable_docstr.py',
+   'PYMODULE'),
+  ('objc._category',
+   '/Users/naveedjawaid/Documents/M '
+   'APP/venv/lib/python3.13/site-packages/objc/_category.py',
+   'PYMODULE'),
+  ('objc._compat',
+   '/Users/naveedjawaid/Documents/M '
+   'APP/venv/lib/python3.13/site-packages/objc/_compat.py',
+   'PYMODULE'),
+  ('objc._context',
+   '/Users/naveedjawaid/Documents/M '
+   'APP/venv/lib/python3.13/site-packages/objc/_context.py',
+   'PYMODULE'),
+  ('objc._convenience',
+   '/Users/naveedjawaid/Documents/M '
+   'APP/venv/lib/python3.13/site-packages/objc/_convenience.py',
+   'PYMODULE'),
+  ('objc._convenience_mapping',
+   '/Users/naveedjawaid/Documents/M '
+   'APP/venv/lib/python3.13/site-packages/objc/_convenience_mapping.py',
+   'PYMODULE'),
+  ('objc._convenience_nsarray',
+   '/Users/naveedjawaid/Documents/M '
+   'APP/venv/lib/python3.13/site-packages/objc/_convenience_nsarray.py',
+   'PYMODULE'),
+  ('objc._convenience_nsdata',
+   '/Users/naveedjawaid/Documents/M '
+   'APP/venv/lib/python3.13/site-packages/objc/_convenience_nsdata.py',
+   'PYMODULE'),
+  ('objc._convenience_nsdecimal',
+   '/Users/naveedjawaid/Documents/M '
+   'APP/venv/lib/python3.13/site-packages/objc/_convenience_nsdecimal.py',
+   'PYMODULE'),
+  ('objc._convenience_nsdictionary',
+   '/Users/naveedjawaid/Documents/M '
+   'APP/venv/lib/python3.13/site-packages/objc/_convenience_nsdictionary.py',
+   'PYMODULE'),
+  ('objc._convenience_nsobject',
+   '/Users/naveedjawaid/Documents/M '
+   'APP/venv/lib/python3.13/site-packages/objc/_convenience_nsobject.py',
+   'PYMODULE'),
+  ('objc._convenience_nsset',
+   '/Users/naveedjawaid/Documents/M '
+   'APP/venv/lib/python3.13/site-packages/objc/_convenience_nsset.py',
+   'PYMODULE'),
+  ('objc._convenience_nsstring',
+   '/Users/naveedjawaid/Documents/M '
+   'APP/venv/lib/python3.13/site-packages/objc/_convenience_nsstring.py',
+   'PYMODULE'),
+  ('objc._convenience_sequence',
+   '/Users/naveedjawaid/Documents/M '
+   'APP/venv/lib/python3.13/site-packages/objc/_convenience_sequence.py',
+   'PYMODULE'),
+  ('objc._descriptors',
+   '/Users/naveedjawaid/Documents/M '
+   'APP/venv/lib/python3.13/site-packages/objc/_descriptors.py',
+   'PYMODULE'),
+  ('objc._dyld',
+   '/Users/naveedjawaid/Documents/M '
+   'APP/venv/lib/python3.13/site-packages/objc/_dyld.py',
+   'PYMODULE'),
+  ('objc._framework',
+   '/Users/naveedjawaid/Documents/M '
+   'APP/venv/lib/python3.13/site-packages/objc/_framework.py',
+   'PYMODULE'),
+  ('objc._informal_protocol',
+   '/Users/naveedjawaid/Documents/M '
+   'APP/venv/lib/python3.13/site-packages/objc/_informal_protocol.py',
+   'PYMODULE'),
+  ('objc._lazyimport',
+   '/Users/naveedjawaid/Documents/M '
+   'APP/venv/lib/python3.13/site-packages/objc/_lazyimport.py',
+   'PYMODULE'),
+  ('objc._locking',
+   '/Users/naveedjawaid/Documents/M '
+   'APP/venv/lib/python3.13/site-packages/objc/_locking.py',
+   'PYMODULE'),
+  ('objc._new',
+   '/Users/naveedjawaid/Documents/M '
+   'APP/venv/lib/python3.13/site-packages/objc/_new.py',
+   'PYMODULE'),
+  ('objc._properties',
+   '/Users/naveedjawaid/Documents/M '
+   'APP/venv/lib/python3.13/site-packages/objc/_properties.py',
+   'PYMODULE'),
+  ('objc._protocols',
+   '/Users/naveedjawaid/Documents/M '
+   'APP/venv/lib/python3.13/site-packages/objc/_protocols.py',
+   'PYMODULE'),
+  ('objc._pycoder',
+   '/Users/naveedjawaid/Documents/M '
+   'APP/venv/lib/python3.13/site-packages/objc/_pycoder.py',
+   'PYMODULE'),
+  ('objc._pythonify',
+   '/Users/naveedjawaid/Documents/M '
+   'APP/venv/lib/python3.13/site-packages/objc/_pythonify.py',
+   'PYMODULE'),
+  ('objc._structtype',
+   '/Users/naveedjawaid/Documents/M '
+   'APP/venv/lib/python3.13/site-packages/objc/_structtype.py',
+   'PYMODULE'),
+  ('objc._transform',
+   '/Users/naveedjawaid/Documents/M '
+   'APP/venv/lib/python3.13/site-packages/objc/_transform.py',
    'PYMODULE'),
   ('opcode',
    '/opt/homebrew/Cellar/python@3.13/3.13.2/Frameworks/Python.framework/Versions/3.13/lib/python3.13/opcode.py',

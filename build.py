@@ -70,6 +70,13 @@ def collect_data_files():
     if os.path.exists(src_dir):
         data_files.append((src_dir, 'src'))
     
+    # Add credentials.json if it exists
+    credentials_file = os.path.join(script_dir, "credentials.json")
+    if os.path.exists(credentials_file):
+        # Copy credentials to app data directory during installation
+        app_data_dir = "AppData" if sys.platform == "win32" else ".chiropracticmanager"
+        data_files.append((credentials_file, app_data_dir))
+    
     # Add Info.plist for macOS
     if sys.platform == "darwin":
         info_plist = os.path.join(script_dir, "Info.plist")
@@ -89,7 +96,6 @@ def build_exe():
     # Set the paths
     main_script = os.path.join(script_dir, "src", "main.py")
     icon_path = os.path.join(script_dir, "assets", "icon.ico")
-    icns_path = os.path.join(script_dir, "assets", "icon.icns")
     dist_path = os.path.join(script_dir, "dist")
     build_path = os.path.join(script_dir, "build")
     
@@ -98,62 +104,69 @@ def build_exe():
         if os.path.exists(path):
             shutil.rmtree(path)
     
-    # Collect data files
-    data_files = collect_data_files()
+    # Set path separator based on platform
+    separator = ';' if sys.platform == "win32" else ':'
     
     # Base PyInstaller arguments
     args = [
         main_script,
         "--name=ChiropracticManager",
-        "--onefile",
         "--windowed",
+        "--onedir",
         "--clean",
         "--noconfirm",
         f"--distpath={dist_path}",
         f"--workpath={build_path}",
         f"--specpath={build_path}",
+        # Hidden imports for Google OAuth
+        "--hidden-import=google_auth_oauthlib.flow",
+        "--hidden-import=google.auth.transport.requests",
+        "--hidden-import=google.oauth2.credentials",
+        "--hidden-import=google_auth_oauthlib",
+        "--hidden-import=google.auth",
+        "--hidden-import=google.oauth2",
+        "--hidden-import=google_auth_httplib2",
+        "--hidden-import=googleapiclient",
+        "--hidden-import=PIL._tkinter_finder",
+        "--hidden-import=babel.numbers",
+        # Collect all required modules
+        "--collect-submodules=google_auth_oauthlib",
+        "--collect-submodules=google_auth_httplib2",
+        "--collect-submodules=googleapiclient",
+        "--collect-submodules=google.auth",
+        "--collect-submodules=google.oauth2",
+        # Add data files
+        f"--add-data={os.path.join(script_dir, 'src')}{separator}src",
+        f"--add-data={os.path.join(script_dir, 'assets')}{separator}assets"
     ]
+    
+    # Add credentials.json if it exists
+    credentials_file = os.path.join(script_dir, "credentials.json")
+    if os.path.exists(credentials_file):
+        args.append(f"--add-data={credentials_file}{separator}.")
     
     # Add platform-specific arguments
-    if sys.platform == "darwin":
+    if sys.platform == "win32":
         args.extend([
-            f"--icon={icns_path}",
-            "--target-arch=arm64",  # Target current architecture only
-            "--codesign-identity=-",
-            "--osx-bundle-identifier=com.naveedjawaid.chiropracticmanager",
-            "--runtime-hook=src/utils/macos_runtime.py"  # Add runtime hook for macOS
+            f"--icon={icon_path}",
+            "--hidden-import=win32api",
+            "--hidden-import=win32con",
+            "--hidden-import=win32gui"
         ])
-    else:
-        if os.path.exists(icon_path):
-            args.append(f"--icon={icon_path}")
-    
-    # Add data files
-    for src, dst in data_files:
-        args.append(f"--add-data={src}:{dst}")
-    
-    # Add hidden imports
-    hidden_imports = [
-        "PIL",
-        "PIL._tkinter_finder",
-        "tkcalendar",
-        "babel.numbers",
-        "customtkinter",
-        "Foundation",  # For macOS
-        "objc",        # For macOS
-        "AppKit",      # For macOS
-        "PyObjCTools", # For macOS
-        "darkdetect",  # For macOS theme detection
-        "google_auth_oauthlib",
-        "google.auth.transport.requests"
-    ]
-    for imp in hidden_imports:
-        args.append(f"--hidden-import={imp}")
     
     # Run PyInstaller
     PyInstaller.__main__.run(args)
     
     print("\nBuild completed successfully!")
     print(f"Executable can be found in: {dist_path}")
+    
+    # For Windows, create Inno Setup script
+    if sys.platform == "win32":
+        create_inno_setup_script()
+        print("\nNext steps:")
+        print("1. Install Inno Setup from: https://jrsoftware.org/isdl.php")
+        print("2. Compile installer.iss with Inno Setup to create the installer")
+        print("3. The installer will be created in the 'installer' directory")
 
 def create_inno_setup_script():
     """Create Inno Setup script for Windows installer"""
@@ -208,12 +221,4 @@ Filename: "{app}\\ChiropracticManager.exe"; Description: "{cm:LaunchProgram,Chir
 
 if __name__ == "__main__":
     # Build executable
-    build_exe()
-    
-    # Create Inno Setup script for Windows
-    if sys.platform == "win32":
-        create_inno_setup_script()
-        print("\nNext steps:")
-        print("1. Install Inno Setup from: https://jrsoftware.org/isdl.php")
-        print("2. Compile installer.iss with Inno Setup to create the installer")
-        print("3. The installer will be created in the 'installer' directory") 
+    build_exe() 
