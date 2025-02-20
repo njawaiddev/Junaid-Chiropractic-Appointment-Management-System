@@ -73,7 +73,7 @@
  [],
  False,
  False,
- 1740021084,
+ 1740021543,
  [('runw',
    '/Users/naveedjawaid/Documents/M '
    'APP/venv/lib/python3.13/site-packages/PyInstaller/bootloader/Darwin-64bit/runw',

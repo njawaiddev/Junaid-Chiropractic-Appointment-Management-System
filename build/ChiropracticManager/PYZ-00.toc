@@ -2490,6 +2490,70 @@
    '/Users/naveedjawaid/Documents/M '
    'APP/venv/lib/python3.13/site-packages/oauthlib/oauth2/rfc8628/clients/device.py',
    'PYMODULE'),
+  ('oauthlib.openid',
+   '/Users/naveedjawaid/Documents/M '
+   'APP/venv/lib/python3.13/site-packages/oauthlib/openid/__init__.py',
+   'PYMODULE'),
+  ('oauthlib.openid.connect',
+   '/Users/naveedjawaid/Documents/M '
+   'APP/venv/lib/python3.13/site-packages/oauthlib/openid/connect/__init__.py',
+   'PYMODULE'),
+  ('oauthlib.openid.connect.core',
+   '/Users/naveedjawaid/Documents/M '
+   'APP/venv/lib/python3.13/site-packages/oauthlib/openid/connect/core/__init__.py',
+   'PYMODULE'),
+  ('oauthlib.openid.connect.core.endpoints',
+   '/Users/naveedjawaid/Documents/M '
+   'APP/venv/lib/python3.13/site-packages/oauthlib/openid/connect/core/endpoints/__init__.py',
+   'PYMODULE'),
+  ('oauthlib.openid.connect.core.endpoints.pre_configured',
+   '/Users/naveedjawaid/Documents/M '
+   'APP/venv/lib/python3.13/site-packages/oauthlib/openid/connect/core/endpoints/pre_configured.py',
+   'PYMODULE'),
+  ('oauthlib.openid.connect.core.endpoints.userinfo',
+   '/Users/naveedjawaid/Documents/M '
+   'APP/venv/lib/python3.13/site-packages/oauthlib/openid/connect/core/endpoints/userinfo.py',
+   'PYMODULE'),
+  ('oauthlib.openid.connect.core.exceptions',
+   '/Users/naveedjawaid/Documents/M '
+   'APP/venv/lib/python3.13/site-packages/oauthlib/openid/connect/core/exceptions.py',
+   'PYMODULE'),
+  ('oauthlib.openid.connect.core.grant_types',
+   '/Users/naveedjawaid/Documents/M '
+   'APP/venv/lib/python3.13/site-packages/oauthlib/openid/connect/core/grant_types/__init__.py',
+   'PYMODULE'),
+  ('oauthlib.openid.connect.core.grant_types.authorization_code',
+   '/Users/naveedjawaid/Documents/M '
+   'APP/venv/lib/python3.13/site-packages/oauthlib/openid/connect/core/grant_types/authorization_code.py',
+   'PYMODULE'),
+  ('oauthlib.openid.connect.core.grant_types.base',
+   '/Users/naveedjawaid/Documents/M '
+   'APP/venv/lib/python3.13/site-packages/oauthlib/openid/connect/core/grant_types/base.py',
+   'PYMODULE'),
+  ('oauthlib.openid.connect.core.grant_types.dispatchers',
+   '/Users/naveedjawaid/Documents/M '
+   'APP/venv/lib/python3.13/site-packages/oauthlib/openid/connect/core/grant_types/dispatchers.py',
+   'PYMODULE'),
+  ('oauthlib.openid.connect.core.grant_types.hybrid',
+   '/Users/naveedjawaid/Documents/M '
+   'APP/venv/lib/python3.13/site-packages/oauthlib/openid/connect/core/grant_types/hybrid.py',
+   'PYMODULE'),
+  ('oauthlib.openid.connect.core.grant_types.implicit',
+   '/Users/naveedjawaid/Documents/M '
+   'APP/venv/lib/python3.13/site-packages/oauthlib/openid/connect/core/grant_types/implicit.py',
+   'PYMODULE'),
+  ('oauthlib.openid.connect.core.grant_types.refresh_token',
+   '/Users/naveedjawaid/Documents/M '
+   'APP/venv/lib/python3.13/site-packages/oauthlib/openid/connect/core/grant_types/refresh_token.py',
+   'PYMODULE'),
+  ('oauthlib.openid.connect.core.request_validator',
+   '/Users/naveedjawaid/Documents/M '
+   'APP/venv/lib/python3.13/site-packages/oauthlib/openid/connect/core/request_validator.py',
+   'PYMODULE'),
+  ('oauthlib.openid.connect.core.tokens',
+   '/Users/naveedjawaid/Documents/M '
+   'APP/venv/lib/python3.13/site-packages/oauthlib/openid/connect/core/tokens.py',
+   'PYMODULE'),
   ('oauthlib.signals',
    '/Users/naveedjawaid/Documents/M '
    'APP/venv/lib/python3.13/site-packages/oauthlib/signals.py',
@@ -3008,6 +3072,46 @@
   ('requests_oauthlib',
    '/Users/naveedjawaid/Documents/M '
    'APP/venv/lib/python3.13/site-packages/requests_oauthlib/__init__.py',
+   'PYMODULE'),
+  ('requests_oauthlib.compliance_fixes',
+   '/Users/naveedjawaid/Documents/M '
+   'APP/venv/lib/python3.13/site-packages/requests_oauthlib/compliance_fixes/__init__.py',
+   'PYMODULE'),
+  ('requests_oauthlib.compliance_fixes.douban',
+   '/Users/naveedjawaid/Documents/M '
+   'APP/venv/lib/python3.13/site-packages/requests_oauthlib/compliance_fixes/douban.py',
+   'PYMODULE'),
+  ('requests_oauthlib.compliance_fixes.ebay',
+   '/Users/naveedjawaid/Documents/M '
+   'APP/venv/lib/python3.13/site-packages/requests_oauthlib/compliance_fixes/ebay.py',
+   'PYMODULE'),
+  ('requests_oauthlib.compliance_fixes.facebook',
+   '/Users/naveedjawaid/Documents/M '
+   'APP/venv/lib/python3.13/site-packages/requests_oauthlib/compliance_fixes/facebook.py',
+   'PYMODULE'),
+  ('requests_oauthlib.compliance_fixes.fitbit',
+   '/Users/naveedjawaid/Documents/M '
+   'APP/venv/lib/python3.13/site-packages/requests_oauthlib/compliance_fixes/fitbit.py',
+   'PYMODULE'),
+  ('requests_oauthlib.compliance_fixes.instagram',
+   '/Users/naveedjawaid/Documents/M '
+   'APP/venv/lib/python3.13/site-packages/requests_oauthlib/compliance_fixes/instagram.py',
+   'PYMODULE'),
+  ('requests_oauthlib.compliance_fixes.mailchimp',
+   '/Users/naveedjawaid/Documents/M '
+   'APP/venv/lib/python3.13/site-packages/requests_oauthlib/compliance_fixes/mailchimp.py',
+   'PYMODULE'),
+  ('requests_oauthlib.compliance_fixes.plentymarkets',
+   '/Users/naveedjawaid/Documents/M '
+   'APP/venv/lib/python3.13/site-packages/requests_oauthlib/compliance_fixes/plentymarkets.py',
+   'PYMODULE'),
+  ('requests_oauthlib.compliance_fixes.slack',
+   '/Users/naveedjawaid/Documents/M '
+   'APP/venv/lib/python3.13/site-packages/requests_oauthlib/compliance_fixes/slack.py',
+   'PYMODULE'),
+  ('requests_oauthlib.compliance_fixes.weibo',
+   '/Users/naveedjawaid/Documents/M '
+   'APP/venv/lib/python3.13/site-packages/requests_oauthlib/compliance_fixes/weibo.py',
    'PYMODULE'),
   ('requests_oauthlib.oauth1_auth',
    '/Users/naveedjawaid/Documents/M '
