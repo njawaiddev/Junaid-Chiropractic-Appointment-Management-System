@@ -289,9 +289,10 @@ class DatabaseManager:
         finally:
             self.close()
 
-    def add_appointment(self, patient_id, appointment_date, appointment_time, notes="", status="pending"):
+    def add_appointment(self, appointment_data):
         """Add a new appointment"""
         # Convert appointment_date to string if it's a datetime object
+        appointment_date = appointment_data['appointment_date']
         if isinstance(appointment_date, datetime):
             appointment_date = appointment_date.strftime("%Y-%m-%d")
         
@@ -306,7 +307,7 @@ class DatabaseManager:
         self.connect()
         try:
             # First check if timeslot is available
-            if not self.is_timeslot_available(appointment_date, appointment_time):
+            if not self.is_timeslot_available(appointment_date, appointment_data['appointment_time']):
                 raise ValueError("This timeslot is already booked. Please select another time.")
             
             # Ensure table exists for this month
@@ -320,7 +321,13 @@ class DatabaseManager:
             (patient_id, appointment_date, appointment_time, status, notes)
             VALUES (?, ?, ?, ?, ?)
             """
-            self.cursor.execute(query, (patient_id, appointment_date, appointment_time, status.lower(), notes))
+            self.cursor.execute(query, (
+                appointment_data['patient_id'],
+                appointment_date,
+                appointment_data['appointment_time'],
+                appointment_data.get('status', 'pending').lower(),
+                appointment_data.get('notes', '')
+            ))
             self.conn.commit()
             return self.cursor.lastrowid
         finally:

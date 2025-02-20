@@ -232,103 +232,220 @@ class PatientFrame(ctk.CTkFrame):
         title_cb.grid(row=row, column=1, sticky="w", padx=10, pady=10)
         row += 1
         
-        # First Name (mandatory)
+        # Name Section
+        name_frame = ctk.CTkFrame(mandatory_frame)
+        name_frame.grid(row=row, column=0, columnspan=2, sticky="ew", padx=10, pady=5)
+        name_frame.grid_columnconfigure((1, 3, 5), weight=1)
+        
+        # First Name (Given Name)
         ctk.CTkLabel(
-            mandatory_frame,
-            text="First Name:*",
+            name_frame,
+            text="Given Name:*",
             text_color=TEXT_PRIMARY,
             font=("Helvetica", 12)
-        ).grid(row=row, column=0, sticky="w", padx=10, pady=10)
+        ).grid(row=0, column=0, sticky="w", padx=5, pady=5)
         
         self.first_name_var = tk.StringVar()
         self.first_name_var.trace_add("write", lambda *args: self.validate_name(self.first_name_var))
-        self.first_name_entry = self.create_entry(mandatory_frame)
+        self.first_name_entry = self.create_entry(name_frame)
         self.first_name_entry.configure(textvariable=self.first_name_var)
-        self.first_name_entry.grid(row=row, column=1, sticky="ew", padx=10, pady=10)
-        row += 1
+        self.first_name_entry.grid(row=0, column=1, sticky="ew", padx=5, pady=5)
         
-        # Last Name (mandatory)
+        # Middle Name (Additional Name)
         ctk.CTkLabel(
-            mandatory_frame,
-            text="Last Name:*",
+            name_frame,
+            text="Middle Name:",
             text_color=TEXT_PRIMARY,
             font=("Helvetica", 12)
-        ).grid(row=row, column=0, sticky="w", padx=10, pady=10)
+        ).grid(row=0, column=2, sticky="w", padx=5, pady=5)
+        
+        self.middle_name_var = tk.StringVar()
+        self.middle_name_var.trace_add("write", lambda *args: self.validate_name(self.middle_name_var))
+        self.middle_name_entry = self.create_entry(name_frame)
+        self.middle_name_entry.configure(textvariable=self.middle_name_var)
+        self.middle_name_entry.grid(row=0, column=3, sticky="ew", padx=5, pady=5)
+        
+        # Last Name (Family Name)
+        ctk.CTkLabel(
+            name_frame,
+            text="Family Name:*",
+            text_color=TEXT_PRIMARY,
+            font=("Helvetica", 12)
+        ).grid(row=0, column=4, sticky="w", padx=5, pady=5)
         
         self.last_name_var = tk.StringVar()
         self.last_name_var.trace_add("write", lambda *args: self.validate_name(self.last_name_var))
-        self.last_name_entry = self.create_entry(mandatory_frame)
+        self.last_name_entry = self.create_entry(name_frame)
         self.last_name_entry.configure(textvariable=self.last_name_var)
-        self.last_name_entry.grid(row=row, column=1, sticky="ew", padx=10, pady=10)
+        self.last_name_entry.grid(row=0, column=5, sticky="ew", padx=5, pady=5)
+        
+        # Nickname
+        ctk.CTkLabel(
+            name_frame,
+            text="Nickname:",
+            text_color=TEXT_PRIMARY,
+            font=("Helvetica", 12)
+        ).grid(row=1, column=0, sticky="w", padx=5, pady=5)
+        
+        self.nickname_var = tk.StringVar()
+        self.nickname_entry = self.create_entry(name_frame)
+        self.nickname_entry.configure(textvariable=self.nickname_var)
+        self.nickname_entry.grid(row=1, column=1, sticky="ew", padx=5, pady=5)
         row += 1
         
-        # Gender (mandatory)
+        # Organization Section
+        org_frame = ctk.CTkFrame(mandatory_frame)
+        org_frame.grid(row=row, column=0, columnspan=2, sticky="ew", padx=10, pady=5)
+        org_frame.grid_columnconfigure((1, 3), weight=1)
+        
+        # Organization
         ctk.CTkLabel(
-            mandatory_frame,
+            org_frame,
+            text="Organization:",
+            text_color=TEXT_PRIMARY,
+            font=("Helvetica", 12)
+        ).grid(row=0, column=0, sticky="w", padx=5, pady=5)
+        
+        self.organization_var = tk.StringVar()
+        self.organization_entry = self.create_entry(org_frame)
+        self.organization_entry.configure(textvariable=self.organization_var)
+        self.organization_entry.grid(row=0, column=1, sticky="ew", padx=5, pady=5)
+        
+        # Job Title
+        ctk.CTkLabel(
+            org_frame,
+            text="Job Title:",
+            text_color=TEXT_PRIMARY,
+            font=("Helvetica", 12)
+        ).grid(row=0, column=2, sticky="w", padx=5, pady=5)
+        
+        self.job_title_var = tk.StringVar()
+        self.job_title_entry = self.create_entry(org_frame)
+        self.job_title_entry.configure(textvariable=self.job_title_var)
+        self.job_title_entry.grid(row=0, column=3, sticky="ew", padx=5, pady=5)
+        row += 1
+        
+        # Gender and Age
+        gender_age_frame = ctk.CTkFrame(mandatory_frame)
+        gender_age_frame.grid(row=row, column=0, columnspan=2, sticky="ew", padx=10, pady=5)
+        gender_age_frame.grid_columnconfigure(3, weight=1)
+        
+        # Gender
+        ctk.CTkLabel(
+            gender_age_frame,
             text="Gender:*",
             text_color=TEXT_PRIMARY,
             font=("Helvetica", 12)
-        ).grid(row=row, column=0, sticky="w", padx=10, pady=10)
-        
-        gender_frame = ctk.CTkFrame(mandatory_frame)
-        gender_frame.grid(row=row, column=1, sticky="ew", padx=10, pady=10)
+        ).grid(row=0, column=0, sticky="w", padx=5, pady=5)
         
         self.gender_var = tk.StringVar(value="Male")
         for i, gender in enumerate(["Male", "Female", "Other"]):
             ctk.CTkRadioButton(
-                gender_frame,
+                gender_age_frame,
                 text=gender,
                 variable=self.gender_var,
                 value=gender,
                 font=("Helvetica", 12)
-            ).pack(side="left", padx=25, pady=5)
-        row += 1
+            ).grid(row=0, column=i+1, padx=10, pady=5)
         
-        # Age with validation
+        # Age
         ctk.CTkLabel(
-            mandatory_frame,
+            gender_age_frame,
             text="Age:*",
             text_color=TEXT_PRIMARY,
             font=("Helvetica", 12)
-        ).grid(row=row, column=0, sticky="w", padx=10, pady=10)
+        ).grid(row=0, column=4, sticky="w", padx=5, pady=5)
         
         self.age_var = tk.StringVar()
         self.age_var.trace_add("write", self.validate_age)
-        self.age_entry = self.create_entry(mandatory_frame, placeholder="Enter age")
+        self.age_entry = self.create_entry(gender_age_frame, placeholder="Enter age")
         self.age_entry.configure(textvariable=self.age_var, width=120)
-        self.age_entry.grid(row=row, column=1, sticky="w", padx=10, pady=10)
+        self.age_entry.grid(row=0, column=5, sticky="w", padx=5, pady=5)
         row += 1
         
-        # Phone with validation
-        ctk.CTkLabel(
-            mandatory_frame,
-            text="Phone:*",
-            text_color=TEXT_PRIMARY,
-            font=("Helvetica", 12)
-        ).grid(row=row, column=0, sticky="w", padx=10, pady=10)
+        # Contact Information Section
+        contact_frame = ctk.CTkFrame(container)
+        contact_frame.pack(fill="x", pady=5)
+        contact_frame.grid_columnconfigure(1, weight=1)
         
+        # Contact header
+        ctk.CTkLabel(
+            contact_frame,
+            text="Contact Information",
+            font=("Helvetica", 12, "bold"),
+            text_color=TEXT_PRIMARY
+        ).grid(row=0, column=0, columnspan=2, sticky="w", padx=5, pady=(5, 10))
+        
+        # Phone Numbers
+        phones_frame = ctk.CTkFrame(contact_frame)
+        phones_frame.grid(row=1, column=0, columnspan=2, sticky="ew", padx=5, pady=2)
+        phones_frame.grid_columnconfigure((1, 3, 5), weight=1)
+        
+        # Primary Phone
+        ctk.CTkLabel(phones_frame, text="Primary Phone:*", text_color=TEXT_PRIMARY).grid(row=0, column=0, sticky="w", padx=5)
         self.phone_var = tk.StringVar()
         self.phone_var.trace_add("write", self.validate_phone)
-        self.phone_entry = self.create_entry(mandatory_frame, placeholder="Enter phone number")
+        self.phone_entry = self.create_entry(phones_frame)
         self.phone_entry.configure(textvariable=self.phone_var)
-        self.phone_entry.grid(row=row, column=1, sticky="ew", padx=10, pady=10)
-        row += 1
+        self.phone_entry.grid(row=0, column=1, sticky="ew", padx=5, pady=2)
         
-        # Email
-        ctk.CTkLabel(
-            mandatory_frame,
-            text="Email:",
-            text_color=TEXT_PRIMARY,
-            font=("Helvetica", 12)
-        ).grid(row=row, column=0, sticky="w", padx=10, pady=10)
+        # Secondary Phone
+        ctk.CTkLabel(phones_frame, text="Secondary Phone:", text_color=TEXT_PRIMARY).grid(row=0, column=2, sticky="w", padx=5)
+        self.secondary_phone_var = tk.StringVar()
+        self.secondary_phone_var.trace_add("write", self.validate_phone)
+        self.secondary_phone_entry = self.create_entry(phones_frame)
+        self.secondary_phone_entry.configure(textvariable=self.secondary_phone_var)
+        self.secondary_phone_entry.grid(row=0, column=3, sticky="ew", padx=5, pady=2)
         
+        # Work Phone
+        ctk.CTkLabel(phones_frame, text="Work Phone:", text_color=TEXT_PRIMARY).grid(row=0, column=4, sticky="w", padx=5)
+        self.work_phone_var = tk.StringVar()
+        self.work_phone_var.trace_add("write", self.validate_phone)
+        self.work_phone_entry = self.create_entry(phones_frame)
+        self.work_phone_entry.configure(textvariable=self.work_phone_var)
+        self.work_phone_entry.grid(row=0, column=5, sticky="ew", padx=5, pady=2)
+        
+        # Email Addresses
+        emails_frame = ctk.CTkFrame(contact_frame)
+        emails_frame.grid(row=2, column=0, columnspan=2, sticky="ew", padx=5, pady=2)
+        emails_frame.grid_columnconfigure((1, 3, 5), weight=1)
+        
+        # Primary Email
+        ctk.CTkLabel(emails_frame, text="Primary Email:", text_color=TEXT_PRIMARY).grid(row=0, column=0, sticky="w", padx=5)
         self.email_var = tk.StringVar()
         self.email_var.trace_add("write", self.validate_email)
-        self.email_entry = self.create_entry(mandatory_frame)
-        self.email_entry.grid(row=row, column=1, sticky="ew", padx=10, pady=10)
-        row += 1
+        self.email_entry = self.create_entry(emails_frame)
+        self.email_entry.configure(textvariable=self.email_var)
+        self.email_entry.grid(row=0, column=1, sticky="ew", padx=5, pady=2)
         
-        # Address Section
+        # Secondary Email
+        ctk.CTkLabel(emails_frame, text="Secondary Email:", text_color=TEXT_PRIMARY).grid(row=0, column=2, sticky="w", padx=5)
+        self.secondary_email_var = tk.StringVar()
+        self.secondary_email_var.trace_add("write", self.validate_email)
+        self.secondary_email_entry = self.create_entry(emails_frame)
+        self.secondary_email_entry.configure(textvariable=self.secondary_email_var)
+        self.secondary_email_entry.grid(row=0, column=3, sticky="ew", padx=5, pady=2)
+        
+        # Work Email
+        ctk.CTkLabel(emails_frame, text="Work Email:", text_color=TEXT_PRIMARY).grid(row=0, column=4, sticky="w", padx=5)
+        self.work_email_var = tk.StringVar()
+        self.work_email_var.trace_add("write", self.validate_email)
+        self.work_email_entry = self.create_entry(emails_frame)
+        self.work_email_entry.configure(textvariable=self.work_email_var)
+        self.work_email_entry.grid(row=0, column=5, sticky="ew", padx=5, pady=2)
+        
+        # Website
+        website_frame = ctk.CTkFrame(contact_frame)
+        website_frame.grid(row=3, column=0, columnspan=2, sticky="ew", padx=5, pady=2)
+        website_frame.grid_columnconfigure(1, weight=1)
+        
+        ctk.CTkLabel(website_frame, text="Website:", text_color=TEXT_PRIMARY).grid(row=0, column=0, sticky="w", padx=5)
+        self.website_var = tk.StringVar()
+        self.website_entry = self.create_entry(website_frame)
+        self.website_entry.configure(textvariable=self.website_var)
+        self.website_entry.grid(row=0, column=1, sticky="ew", padx=5, pady=2)
+        
+        # Primary Address Section
         address_frame = ctk.CTkFrame(container)
         address_frame.pack(fill="x", pady=5)
         address_frame.grid_columnconfigure(1, weight=1)
@@ -336,7 +453,7 @@ class PatientFrame(ctk.CTkFrame):
         # Address header
         ctk.CTkLabel(
             address_frame,
-            text="Address",
+            text="Primary Address",
             font=("Helvetica", 12, "bold"),
             text_color=TEXT_PRIMARY
         ).grid(row=0, column=0, columnspan=2, sticky="w", padx=5, pady=(5, 10))
@@ -344,34 +461,127 @@ class PatientFrame(ctk.CTkFrame):
         # Street
         ctk.CTkLabel(address_frame, text="Street:", text_color=TEXT_PRIMARY).grid(row=1, column=0, sticky="w", padx=5)
         self.street_var = tk.StringVar()
-        self.street_var.trace_add("write", self.validate_street)
         self.street_entry = self.create_entry(address_frame)
+        self.street_entry.configure(textvariable=self.street_var)
         self.street_entry.grid(row=1, column=1, sticky="ew", padx=5, pady=2)
         
-        # City and State (side by side)
+        # City and State
         city_state_frame = ctk.CTkFrame(address_frame)
         city_state_frame.grid(row=2, column=0, columnspan=2, sticky="ew", padx=5, pady=2)
-        city_state_frame.grid_columnconfigure((0, 1), weight=1)
+        city_state_frame.grid_columnconfigure((1, 3), weight=1)
         
         # City
         ctk.CTkLabel(city_state_frame, text="City:", text_color=TEXT_PRIMARY).grid(row=0, column=0, sticky="w", padx=5)
         self.city_var = tk.StringVar()
-        self.city_var.trace_add("write", lambda *args: self.validate_name(self.city_var))
         self.city_entry = self.create_entry(city_state_frame)
+        self.city_entry.configure(textvariable=self.city_var)
         self.city_entry.grid(row=0, column=1, sticky="ew", padx=5)
         
         # State
         ctk.CTkLabel(city_state_frame, text="State:", text_color=TEXT_PRIMARY).grid(row=0, column=2, sticky="w", padx=5)
         self.state_var = tk.StringVar()
-        self.state_var.trace_add("write", lambda *args: self.validate_name(self.state_var))
         self.state_entry = self.create_entry(city_state_frame)
+        self.state_entry.configure(textvariable=self.state_var)
         self.state_entry.grid(row=0, column=3, sticky="ew", padx=5)
         
-        # ZIP with validation
+        # ZIP
+        ctk.CTkLabel(address_frame, text="ZIP:", text_color=TEXT_PRIMARY).grid(row=3, column=0, sticky="w", padx=5)
         self.zip_var = tk.StringVar()
-        self.zip_var.trace_add("write", self.validate_zip)
         self.zip_entry = self.create_entry(address_frame)
+        self.zip_entry.configure(textvariable=self.zip_var)
         self.zip_entry.grid(row=3, column=1, sticky="ew", padx=5, pady=2)
+        
+        # Secondary Address Section
+        secondary_address_frame = ctk.CTkFrame(container)
+        secondary_address_frame.pack(fill="x", pady=5)
+        secondary_address_frame.grid_columnconfigure(1, weight=1)
+        
+        # Secondary Address header
+        ctk.CTkLabel(
+            secondary_address_frame,
+            text="Secondary Address",
+            font=("Helvetica", 12, "bold"),
+            text_color=TEXT_PRIMARY
+        ).grid(row=0, column=0, columnspan=2, sticky="w", padx=5, pady=(5, 10))
+        
+        # Secondary Street
+        ctk.CTkLabel(secondary_address_frame, text="Street:", text_color=TEXT_PRIMARY).grid(row=1, column=0, sticky="w", padx=5)
+        self.secondary_street_var = tk.StringVar()
+        self.secondary_street_entry = self.create_entry(secondary_address_frame)
+        self.secondary_street_entry.configure(textvariable=self.secondary_street_var)
+        self.secondary_street_entry.grid(row=1, column=1, sticky="ew", padx=5, pady=2)
+        
+        # Secondary City and State
+        secondary_city_state_frame = ctk.CTkFrame(secondary_address_frame)
+        secondary_city_state_frame.grid(row=2, column=0, columnspan=2, sticky="ew", padx=5, pady=2)
+        secondary_city_state_frame.grid_columnconfigure((1, 3), weight=1)
+        
+        # Secondary City
+        ctk.CTkLabel(secondary_city_state_frame, text="City:", text_color=TEXT_PRIMARY).grid(row=0, column=0, sticky="w", padx=5)
+        self.secondary_city_var = tk.StringVar()
+        self.secondary_city_entry = self.create_entry(secondary_city_state_frame)
+        self.secondary_city_entry.configure(textvariable=self.secondary_city_var)
+        self.secondary_city_entry.grid(row=0, column=1, sticky="ew", padx=5)
+        
+        # Secondary State
+        ctk.CTkLabel(secondary_city_state_frame, text="State:", text_color=TEXT_PRIMARY).grid(row=0, column=2, sticky="w", padx=5)
+        self.secondary_state_var = tk.StringVar()
+        self.secondary_state_entry = self.create_entry(secondary_city_state_frame)
+        self.secondary_state_entry.configure(textvariable=self.secondary_state_var)
+        self.secondary_state_entry.grid(row=0, column=3, sticky="ew", padx=5)
+        
+        # Secondary ZIP
+        ctk.CTkLabel(secondary_address_frame, text="ZIP:", text_color=TEXT_PRIMARY).grid(row=3, column=0, sticky="w", padx=5)
+        self.secondary_zip_var = tk.StringVar()
+        self.secondary_zip_entry = self.create_entry(secondary_address_frame)
+        self.secondary_zip_entry.configure(textvariable=self.secondary_zip_var)
+        self.secondary_zip_entry.grid(row=3, column=1, sticky="ew", padx=5, pady=2)
+        
+        # Work Address Section
+        work_address_frame = ctk.CTkFrame(container)
+        work_address_frame.pack(fill="x", pady=5)
+        work_address_frame.grid_columnconfigure(1, weight=1)
+        
+        # Work Address header
+        ctk.CTkLabel(
+            work_address_frame,
+            text="Work Address",
+            font=("Helvetica", 12, "bold"),
+            text_color=TEXT_PRIMARY
+        ).grid(row=0, column=0, columnspan=2, sticky="w", padx=5, pady=(5, 10))
+        
+        # Work Street
+        ctk.CTkLabel(work_address_frame, text="Street:", text_color=TEXT_PRIMARY).grid(row=1, column=0, sticky="w", padx=5)
+        self.work_street_var = tk.StringVar()
+        self.work_street_entry = self.create_entry(work_address_frame)
+        self.work_street_entry.configure(textvariable=self.work_street_var)
+        self.work_street_entry.grid(row=1, column=1, sticky="ew", padx=5, pady=2)
+        
+        # Work City and State
+        work_city_state_frame = ctk.CTkFrame(work_address_frame)
+        work_city_state_frame.grid(row=2, column=0, columnspan=2, sticky="ew", padx=5, pady=2)
+        work_city_state_frame.grid_columnconfigure((1, 3), weight=1)
+        
+        # Work City
+        ctk.CTkLabel(work_city_state_frame, text="City:", text_color=TEXT_PRIMARY).grid(row=0, column=0, sticky="w", padx=5)
+        self.work_city_var = tk.StringVar()
+        self.work_city_entry = self.create_entry(work_city_state_frame)
+        self.work_city_entry.configure(textvariable=self.work_city_var)
+        self.work_city_entry.grid(row=0, column=1, sticky="ew", padx=5)
+        
+        # Work State
+        ctk.CTkLabel(work_city_state_frame, text="State:", text_color=TEXT_PRIMARY).grid(row=0, column=2, sticky="w", padx=5)
+        self.work_state_var = tk.StringVar()
+        self.work_state_entry = self.create_entry(work_city_state_frame)
+        self.work_state_entry.configure(textvariable=self.work_state_var)
+        self.work_state_entry.grid(row=0, column=3, sticky="ew", padx=5)
+        
+        # Work ZIP
+        ctk.CTkLabel(work_address_frame, text="ZIP:", text_color=TEXT_PRIMARY).grid(row=3, column=0, sticky="w", padx=5)
+        self.work_zip_var = tk.StringVar()
+        self.work_zip_entry = self.create_entry(work_address_frame)
+        self.work_zip_entry.configure(textvariable=self.work_zip_var)
+        self.work_zip_entry.grid(row=3, column=1, sticky="ew", padx=5, pady=2)
         
         # Emergency Contact Section
         emergency_frame = ctk.CTkFrame(container)
@@ -388,10 +598,12 @@ class PatientFrame(ctk.CTkFrame):
         
         # Name
         ctk.CTkLabel(emergency_frame, text="Name:", text_color=TEXT_PRIMARY).grid(row=1, column=0, sticky="w", padx=5)
+        self.emergency_name_var = tk.StringVar()
         self.emergency_name_entry = self.create_entry(emergency_frame)
+        self.emergency_name_entry.configure(textvariable=self.emergency_name_var)
         self.emergency_name_entry.grid(row=1, column=1, sticky="ew", padx=5, pady=2)
         
-        # Emergency Phone with validation
+        # Emergency Phone
         ctk.CTkLabel(emergency_frame, text="Phone:", text_color=TEXT_PRIMARY).grid(row=2, column=0, sticky="w", padx=5)
         self.emergency_phone_var = tk.StringVar()
         self.emergency_phone_var.trace_add("write", self.validate_emergency_phone)
@@ -401,8 +613,26 @@ class PatientFrame(ctk.CTkFrame):
         
         # Relationship
         ctk.CTkLabel(emergency_frame, text="Relationship:", text_color=TEXT_PRIMARY).grid(row=3, column=0, sticky="w", padx=5)
+        self.emergency_relation_var = tk.StringVar()
         self.emergency_relation_entry = self.create_entry(emergency_frame)
+        self.emergency_relation_entry.configure(textvariable=self.emergency_relation_var)
         self.emergency_relation_entry.grid(row=3, column=1, sticky="ew", padx=5, pady=2)
+        
+        # Notes Section
+        notes_frame = ctk.CTkFrame(container)
+        notes_frame.pack(fill="x", pady=5)
+        notes_frame.grid_columnconfigure(0, weight=1)
+        
+        # Notes header
+        ctk.CTkLabel(
+            notes_frame,
+            text="Additional Notes",
+            font=("Helvetica", 12, "bold"),
+            text_color=TEXT_PRIMARY
+        ).grid(row=0, column=0, sticky="w", padx=5, pady=(5, 2))
+        
+        self.notes_text = self.create_textbox(notes_frame, height=100)
+        self.notes_text.grid(row=1, column=0, sticky="ew", padx=5, pady=(0, 5))
     
     def setup_medical_info_tab(self, parent):
         """Setup medical information tab"""
@@ -692,53 +922,64 @@ class PatientFrame(ctk.CTkFrame):
     
     def save_patient(self):
         """Save patient details"""
-        # Validate mandatory fields
-        if not self.validate_mandatory_fields():
-            return
-        
-        # Validate individual fields
-        if not self.validate_name(self.first_name_var):
-            messagebox.showerror("Error", "First Name can only contain letters, spaces, and hyphens")
-            return
-            
-        if not self.validate_name(self.last_name_var):
-            messagebox.showerror("Error", "Last Name can only contain letters, spaces, and hyphens")
-            return
-            
-        if not self.validate_age(None):
-            messagebox.showerror("Error", "Age must be a number between 1 and 150")
-            return
-            
-        if not self.validate_phone(None):
-            messagebox.showerror("Error", "Phone number must be between 10 and 15 digits")
-            return
-        
         try:
             # Collect all field values
             patient_data = {
                 'title': self.title_var.get(),
                 'first_name': self.first_name_var.get().strip(),
+                'middle_name': self.middle_name_var.get().strip(),
                 'last_name': self.last_name_var.get().strip(),
+                'nickname': self.nickname_var.get().strip(),
+                'organization': self.organization_var.get().strip(),
+                'job_title': self.job_title_var.get().strip(),
                 'gender': self.gender_var.get(),
                 'age': int(self.age_var.get().strip()),
                 'phone': self.phone_var.get().strip(),
+                'secondary_phone': self.secondary_phone_var.get().strip(),
+                'work_phone': self.work_phone_var.get().strip(),
                 'email': self.email_var.get().strip(),
+                'secondary_email': self.secondary_email_var.get().strip(),
+                'work_email': self.work_email_var.get().strip(),
+                'website': self.website_var.get().strip(),
+                
+                # Primary Address
                 'address_street': self.street_var.get().strip(),
                 'address_city': self.city_var.get().strip(),
                 'address_state': self.state_var.get().strip(),
                 'address_zip': self.zip_var.get().strip(),
-                'emergency_contact_name': self.emergency_name_entry.get().strip(),
+                
+                # Secondary Address
+                'secondary_address_street': self.secondary_street_var.get().strip(),
+                'secondary_address_city': self.secondary_city_var.get().strip(),
+                'secondary_address_state': self.secondary_state_var.get().strip(),
+                'secondary_address_zip': self.secondary_zip_var.get().strip(),
+                
+                # Work Address
+                'work_address_street': self.work_street_var.get().strip(),
+                'work_address_city': self.work_city_var.get().strip(),
+                'work_address_state': self.work_state_var.get().strip(),
+                'work_address_zip': self.work_zip_var.get().strip(),
+                
+                # Emergency Contact
+                'emergency_contact_name': self.emergency_name_var.get().strip(),
                 'emergency_contact_phone': self.emergency_phone_var.get().strip(),
-                'emergency_contact_relation': self.emergency_relation_entry.get().strip(),
+                'emergency_contact_relation': self.emergency_relation_var.get().strip(),
+                
+                # Medical Information
                 'reference_source': self.reference_entry.get().strip(),
                 'medical_conditions': self.conditions_text.get("1.0", "end-1c"),
                 'past_surgeries': self.surgeries_text.get("1.0", "end-1c"),
                 'current_medications': self.medications_text.get("1.0", "end-1c"),
                 'allergies': self.allergies_text.get("1.0", "end-1c"),
                 'chiropractic_history': self.history_text.get("1.0", "end-1c"),
+                
+                # Insurance Information
                 'insurance_provider': self.insurance_provider_entry.get().strip(),
                 'insurance_policy_number': self.policy_number_entry.get().strip(),
-                'insurance_coverage_details': self.coverage_text.get("1.0", "end-1c")
+                'insurance_coverage_details': self.coverage_text.get("1.0", "end-1c"),
+                
+                # Additional Notes
+                'notes': self.notes_text.get("1.0", "end-1c")
             }
             
             # Remove empty values
@@ -835,43 +1076,56 @@ class PatientFrame(ctk.CTkFrame):
             # Title
             self.title_var.set(patient.get('title', ''))
             
-            # First Name
+            # Name fields
             self.first_name_var.set(patient['first_name'])
-            
-            # Last Name
+            self.middle_name_var.set(patient.get('middle_name', ''))
             self.last_name_var.set(patient['last_name'])
+            self.nickname_var.set(patient.get('nickname', ''))
             
-            # Gender
+            # Organization fields
+            self.organization_var.set(patient.get('organization', ''))
+            self.job_title_var.set(patient.get('job_title', ''))
+            
+            # Gender and Age
             self.gender_var.set(patient.get('gender', 'Male'))
-            
-            # Age
             self.age_var.set(str(patient['age']))
             
-            # Phone
+            # Contact Information
+            # Phone numbers
             self.phone_var.set(patient['phone'])
+            self.secondary_phone_var.set(patient.get('secondary_phone', ''))
+            self.work_phone_var.set(patient.get('work_phone', ''))
             
-            # Email
-            self.email_var.set(patient['email'])
+            # Email addresses
+            self.email_var.set(patient.get('email', ''))
+            self.secondary_email_var.set(patient.get('secondary_email', ''))
+            self.work_email_var.set(patient.get('work_email', ''))
             
-            # Address
-            self.street_var.set(patient['address_street'])
+            # Website
+            self.website_var.set(patient.get('website', ''))
             
-            self.city_var.set(patient['address_city'])
+            # Primary Address
+            self.street_var.set(patient.get('address_street', ''))
+            self.city_var.set(patient.get('address_city', ''))
+            self.state_var.set(patient.get('address_state', ''))
+            self.zip_var.set(patient.get('address_zip', ''))
             
-            self.state_var.set(patient['address_state'])
+            # Secondary Address
+            self.secondary_street_var.set(patient.get('secondary_address_street', ''))
+            self.secondary_city_var.set(patient.get('secondary_address_city', ''))
+            self.secondary_state_var.set(patient.get('secondary_address_state', ''))
+            self.secondary_zip_var.set(patient.get('secondary_address_zip', ''))
             
-            self.zip_var.set(patient['address_zip'])
+            # Work Address
+            self.work_street_var.set(patient.get('work_address_street', ''))
+            self.work_city_var.set(patient.get('work_address_city', ''))
+            self.work_state_var.set(patient.get('work_address_state', ''))
+            self.work_zip_var.set(patient.get('work_address_zip', ''))
             
             # Emergency Contact
-            self.emergency_name_entry.delete(0, tk.END)
-            if patient.get('emergency_contact_name'):
-                self.emergency_name_entry.insert(0, patient['emergency_contact_name'])
-            
+            self.emergency_name_var.set(patient.get('emergency_contact_name', ''))
             self.emergency_phone_var.set(patient.get('emergency_contact_phone', ''))
-            
-            self.emergency_relation_entry.delete(0, tk.END)
-            if patient.get('emergency_contact_relation'):
-                self.emergency_relation_entry.insert(0, patient['emergency_contact_relation'])
+            self.emergency_relation_var.set(patient.get('emergency_contact_relation', ''))
             
             # Reference
             self.reference_entry.delete(0, tk.END)
@@ -912,12 +1166,17 @@ class PatientFrame(ctk.CTkFrame):
             if patient.get('insurance_coverage_details'):
                 self.coverage_text.insert("1.0", patient['insurance_coverage_details'])
             
+            # Additional Notes
+            self.notes_text.delete("1.0", tk.END)
+            if patient.get('notes'):
+                self.notes_text.insert("1.0", patient['notes'])
+            
             # Update session history
             self.refresh_session_history(patient.get('session_history', []))
             
         except Exception as e:
-            messagebox.showerror("Error", f"Failed to load patient data: {str(e)}")
-            print(f"Error loading patient data: {str(e)}")
+            messagebox.showerror("Error", f"Failed to load patient details: {str(e)}")
+            print(f"Error loading patient details: {str(e)}")
             import traceback
             traceback.print_exc()
     
@@ -1054,29 +1313,75 @@ class PatientFrame(ctk.CTkFrame):
         """Clear fields for new patient"""
         self.patient_tree.selection_remove(self.patient_tree.selection())
         
+        # Clear Name fields
         self.title_var.set("")
         self.first_name_var.set("")
+        self.middle_name_var.set("")
         self.last_name_var.set("")
+        self.nickname_var.set("")
+        
+        # Clear Organization fields
+        self.organization_var.set("")
+        self.job_title_var.set("")
+        
+        # Clear Gender and Age
         self.gender_var.set("Male")
         self.age_var.set("")
+        
+        # Clear Contact Information
+        # Phone numbers
         self.phone_var.set("")
+        self.secondary_phone_var.set("")
+        self.work_phone_var.set("")
+        
+        # Email addresses
         self.email_var.set("")
+        self.secondary_email_var.set("")
+        self.work_email_var.set("")
+        
+        # Website
+        self.website_var.set("")
+        
+        # Clear Primary Address
         self.street_var.set("")
         self.city_var.set("")
         self.state_var.set("")
         self.zip_var.set("")
-        self.emergency_name_entry.delete(0, "end")
+        
+        # Clear Secondary Address
+        self.secondary_street_var.set("")
+        self.secondary_city_var.set("")
+        self.secondary_state_var.set("")
+        self.secondary_zip_var.set("")
+        
+        # Clear Work Address
+        self.work_street_var.set("")
+        self.work_city_var.set("")
+        self.work_state_var.set("")
+        self.work_zip_var.set("")
+        
+        # Clear Emergency Contact
+        self.emergency_name_var.set("")
         self.emergency_phone_var.set("")
-        self.emergency_relation_entry.delete(0, "end")
+        self.emergency_relation_var.set("")
+        
+        # Clear Reference
         self.reference_entry.delete(0, "end")
+        
+        # Clear Medical Information
         self.conditions_text.delete("1.0", "end")
         self.surgeries_text.delete("1.0", "end")
         self.medications_text.delete("1.0", "end")
         self.allergies_text.delete("1.0", "end")
         self.history_text.delete("1.0", "end")
+        
+        # Clear Insurance Information
         self.insurance_provider_entry.delete(0, "end")
         self.policy_number_entry.delete(0, "end")
         self.coverage_text.delete("1.0", "end")
+        
+        # Clear Additional Notes
+        self.notes_text.delete("1.0", "end")
         
         # Clear session history
         for item in self.session_tree.get_children():
@@ -1145,20 +1450,27 @@ class PatientFrame(ctk.CTkFrame):
             return True
 
     def validate_phone(self, *args):
-        """Validate phone input - only numbers allowed, length 10-15 digits"""
+        """Validate phone input - allow + for country code and numbers, length 10-15 digits"""
         current = self.phone_var.get()
-        # Remove any non-numeric characters immediately
-        valid = ''.join(c for c in current if c.isdigit())
         
-        # Update the entry if non-numeric characters were removed
+        # Allow + only at the start
+        if current.startswith('+'):
+            # Remove any non-numeric characters after the +
+            valid = '+' + ''.join(c for c in current[1:] if c.isdigit())
+        else:
+            # Remove any non-numeric characters
+            valid = ''.join(c for c in current if c.isdigit())
+        
+        # Update the entry if invalid characters were removed
         if current != valid:
             self.phone_var.set(valid)
             self.phone_entry.configure(border_color=ERROR_RED)
             return False
             
-        # Check phone number length (10-15 digits)
-        if len(valid) > 0:
-            if len(valid) < 10 or len(valid) > 15:
+        # Check phone number length (10-15 digits, not counting the + if present)
+        digits = valid.replace('+', '')
+        if len(digits) > 0:
+            if len(digits) < 10 or len(digits) > 15:
                 self.phone_entry.configure(border_color=ERROR_RED)
                 return False
             else:
@@ -1249,18 +1561,25 @@ class PatientFrame(ctk.CTkFrame):
         return True
 
     def validate_emergency_phone(self, *args):
-        """Validate emergency contact phone input - only numbers allowed"""
+        """Validate emergency contact phone input - allow + for country code and numbers"""
         current = self.emergency_phone_var.get()
-        # Remove any non-numeric characters
-        valid = ''.join(c for c in current if c.isdigit())
         
-        # Update the entry if non-numeric characters were removed
+        # Allow + only at the start
+        if current.startswith('+'):
+            # Remove any non-numeric characters after the +
+            valid = '+' + ''.join(c for c in current[1:] if c.isdigit())
+        else:
+            # Remove any non-numeric characters
+            valid = ''.join(c for c in current if c.isdigit())
+        
+        # Update the entry if invalid characters were removed
         if current != valid:
             self.emergency_phone_var.set(valid)
             self.emergency_phone_entry.configure(border_color=ERROR_RED)
         else:
-            # Check phone number length (10-15 digits)
-            if len(valid) > 0 and (len(valid) < 10 or len(valid) > 15):
+            # Check phone number length (10-15 digits, not counting the + if present)
+            digits = valid.replace('+', '')
+            if len(digits) > 0 and (len(digits) < 10 or len(digits) > 15):
                 self.emergency_phone_entry.configure(border_color=ERROR_RED)
             else:
                 self.emergency_phone_entry.configure(border_color=PRIMARY_BLUE) 

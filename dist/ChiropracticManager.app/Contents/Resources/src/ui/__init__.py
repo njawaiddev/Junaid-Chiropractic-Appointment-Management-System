@@ -1,1 +1,0 @@
-"""UI package for the Chiropractic Appointment Management System.""" 

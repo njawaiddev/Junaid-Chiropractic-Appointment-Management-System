@@ -655,7 +655,7 @@ class DashboardFrame(ctk.CTkFrame):
     def setup_appointment_list(self, parent):
         """Set up the appointments treeview with modern style"""
         tree_frame = ctk.CTkFrame(parent)
-        tree_frame.grid(row=2, column=0, padx=10, pady=5, sticky="nsew")
+        tree_frame.grid(row=2, column=0, padx=20, pady=10, sticky="nsew")  # Increased padding
         tree_frame.configure(fg_color=BG_WHITE)
         
         # Modern treeview style
@@ -665,14 +665,15 @@ class DashboardFrame(ctk.CTkFrame):
             background=BG_WHITE,
             fieldbackground=BG_WHITE,
             foreground=TEXT_PRIMARY,
-            rowheight=40,
-            font=("Helvetica", 11)
+            rowheight=45,  # Increased row height
+            font=("Helvetica", 12)  # Slightly larger font
         )
         style.configure(
             "Treeview.Heading",
             background=BG_LIGHT,
             foreground=TEXT_PRIMARY,
-            font=("Helvetica", 12, "bold")
+            font=("Helvetica", 13, "bold"),  # Larger header font
+            padding=[10, 5]  # Added padding to headers
         )
         
         # Configure selection colors
@@ -683,7 +684,7 @@ class DashboardFrame(ctk.CTkFrame):
         )
         
         # Create treeview with modern columns
-        columns = ("Time", "Patient", "Status", "Notes", "Actions")
+        columns = ("Time", "Patient", "Status", "Actions")  # Removed Notes column
         self.tree = ttk.Treeview(
             tree_frame,
             columns=columns,
@@ -692,29 +693,34 @@ class DashboardFrame(ctk.CTkFrame):
             style="Treeview"
         )
         
-        # Configure columns with modern proportions
+        # Configure columns with improved proportions
+        column_widths = {
+            "Time": 120,      # Wider for time with AM/PM
+            "Patient": 250,   # Wider for full names
+            "Status": 120,    # Width for status
+            "Actions": 120    # Width for action buttons
+        }
+        
         for col in columns:
             self.tree.heading(col, text=col)
-            self.tree.column(col, anchor="w")  # Left-align all columns
-        
-        self.tree.column("Time", width=80, minwidth=80)
-        self.tree.column("Patient", width=150, minwidth=150)
-        self.tree.column("Status", width=100, minwidth=100)
-        self.tree.column("Notes", width=200, minwidth=150)
-        self.tree.column("Actions", width=100, minwidth=100)
+            self.tree.column(col, width=column_widths[col], minwidth=column_widths[col]//2, anchor="w")
         
         # Modern scrollbar
         scrollbar = ttk.Scrollbar(tree_frame, orient="vertical", command=self.tree.yview)
         self.tree.configure(yscrollcommand=scrollbar.set)
         
         # Pack with modern padding
-        self.tree.pack(side="left", fill="both", expand=True, padx=(0, 5))
-        scrollbar.pack(side="right", fill="y")
+        self.tree.pack(side="left", fill="both", expand=True, padx=(10, 5), pady=10)
+        scrollbar.pack(side="right", fill="y", pady=10)
         
         # Modern status colors with better visibility
-        self.tree.tag_configure("pending", foreground=WARNING_AMBER, background=WARNING_AMBER_LIGHT)
-        self.tree.tag_configure("done", foreground=SUCCESS_GREEN, background=SUCCESS_GREEN_LIGHT)
-        self.tree.tag_configure("cancelled", foreground=ERROR_RED, background=ERROR_RED_LIGHT)
+        self.tree.tag_configure("pending", foreground=WARNING_AMBER)
+        self.tree.tag_configure("done", foreground=SUCCESS_GREEN)
+        self.tree.tag_configure("cancelled", foreground=ERROR_RED)
+        
+        # Configure alternating row colors for better readability
+        self.tree.tag_configure("oddrow", background="#F8F9FA")
+        self.tree.tag_configure("evenrow", background=BG_WHITE)
         
         # Bind double-click event for viewing notes
         self.tree.bind('<Double-1>', self.view_notes)
@@ -887,7 +893,7 @@ class DashboardFrame(ctk.CTkFrame):
             if appointments:
                 # Add date header
                 date_str = date.strftime("%A, %B %d")
-                self.tree.insert("", "end", values=(date_str, "", "", "", ""), tags=("date_header",))
+                self.tree.insert("", "end", values=(date_str, "", "", ""), tags=("date_header",))
                 
                 # Add appointments
                 for appt in appointments:
@@ -899,7 +905,6 @@ class DashboardFrame(ctk.CTkFrame):
                             appt["appointment_time"],
                             appt["patient_name"],
                             status.capitalize(),
-                            appt["notes"],
                             "View Notes" if appt["notes"] else ""
                         ),
                         tags=(str(appt["id"]), status)  # Include appointment ID and status in tags
@@ -923,7 +928,7 @@ class DashboardFrame(ctk.CTkFrame):
             if appointments:
                 # Add date header
                 date_str = date.strftime("%A, %B %d")
-                self.tree.insert("", "end", values=(date_str, "", "", "", ""), tags=("date_header",))
+                self.tree.insert("", "end", values=(date_str, "", "", ""), tags=("date_header",))
                 
                 # Add appointments
                 for appt in appointments:
@@ -935,7 +940,6 @@ class DashboardFrame(ctk.CTkFrame):
                             appt["appointment_time"],
                             appt["patient_name"],
                             status.capitalize(),
-                            appt["notes"],
                             "View Notes" if appt["notes"] else ""
                         ),
                         tags=(str(appt["id"]), status)  # Include appointment ID and status in tags
@@ -945,30 +949,40 @@ class DashboardFrame(ctk.CTkFrame):
         """Handle double-click event to view notes"""
         region = self.tree.identify_region(event.x, event.y)
         if region == "cell":
-            item = self.tree.selection()[0]
-            column = self.tree.identify_column(event.x)
-            values = self.tree.item(item)["values"]
-            
-            # If clicked on Notes column or Actions column
-            if column == "#4" or (column == "#5" and values[4] == "View Notes"):
-                # Get the full appointment details
-                time_12h = values[0]
-                patient_name = values[1]
+            try:
+                item = self.tree.selection()[0]
+                column = self.tree.identify_column(event.x)
+                values = self.tree.item(item)["values"]
                 
-                appointments = self.db.get_appointments_by_date(self.calendar.get_date())
-                for appt in appointments:
-                    # Convert appointment time to 12-hour format for comparison
-                    time_24h = datetime.strptime(appt['appointment_time'], "%H:%M")
-                    appt_time_12h = time_24h.strftime("%I:%M %p").lstrip("0")
+                # Get appointment ID from tags
+                tags = self.tree.item(item)["tags"]
+                if not tags or tags[0] == 'message' or tags[0] == 'date_header':
+                    return
+                
+                # If clicked on Actions column and it shows "View Notes"
+                if column == "#4" and values[3] == "View Notes":
+                    # Get the full appointment details
+                    time_12h = values[0]
+                    patient_name = values[1]
                     
-                    if appt_time_12h == time_12h and appt['patient_name'] == patient_name:
-                        # Show notes in dialog
-                        dialog = NotesDialog(
-                            self,
-                            f"Notes for {patient_name} - {time_12h}",
-                            appt.get('notes', 'No notes available')
-                        )
-                        break
+                    appointments = self.db.get_appointments_by_date(format_date(self.selected_date))
+                    for appt in appointments:
+                        # Convert appointment time to 12-hour format for comparison
+                        time_24h = datetime.strptime(appt['appointment_time'], "%H:%M")
+                        appt_time_12h = time_24h.strftime("%I:%M %p")  # This will show like "09:30 AM"
+                        
+                        if appt_time_12h == time_12h and appt['patient_name'] == patient_name:
+                            # Show notes in dialog
+                            dialog = NotesDialog(
+                                self,
+                                f"Notes for {patient_name} - {time_12h}",
+                                appt.get('notes', 'No notes available')
+                            )
+                            break
+            except Exception as e:
+                print(f"Error viewing notes: {str(e)}")
+                import traceback
+                traceback.print_exc()
 
     def update_appointment_list(self, appointments):
         """Update the appointment list with new appointments"""
@@ -977,15 +991,28 @@ class DashboardFrame(ctk.CTkFrame):
             for item in self.tree.get_children():
                 self.tree.delete(item)
             
+            # Group appointments by date for better organization
+            current_date = None
+            row_count = 0  # Counter for alternating colors
+            
             # Insert new appointments
             for appt in appointments:
-                # Convert time to 12-hour format
-                time_12h = format_time_12hr(appt['appointment_time'])
+                # Convert time to 12-hour format with AM/PM
+                time_obj = datetime.strptime(appt['appointment_time'], '%H:%M')
+                time_12h = time_obj.strftime('%I:%M %p')  # This will show like "09:30 AM"
                 
                 # Get status color
                 status = appt['status'].lower() if appt['status'] else 'pending'
                 
-                # Store the appointment ID in the item's tags
+                # Determine row color
+                row_tags = [str(appt['id']), status]
+                if row_count % 2 == 0:
+                    row_tags.append('evenrow')
+                else:
+                    row_tags.append('oddrow')
+                row_count += 1
+                
+                # Insert the appointment with all tags
                 self.tree.insert(
                     "",
                     "end",
@@ -993,10 +1020,9 @@ class DashboardFrame(ctk.CTkFrame):
                         time_12h,
                         appt['patient_name'],
                         status.capitalize(),
-                        appt['notes'],
                         "View Notes" if appt['notes'] else ""
                     ),
-                    tags=(str(appt['id']), status)  # Add appointment ID as first tag
+                    tags=tuple(row_tags)
                 )
             
             # If no appointments, show message
@@ -1004,7 +1030,7 @@ class DashboardFrame(ctk.CTkFrame):
                 self.tree.insert(
                     "",
                     "end",
-                    values=("No appointments scheduled", "", "", "", ""),
+                    values=("No appointments scheduled for this day", "", "", ""),
                     tags=('message',)
                 )
             
@@ -1042,24 +1068,15 @@ class DashboardFrame(ctk.CTkFrame):
                     self.sync_with_google_calendar([saved_appt])
             else:
                 # Create new appointment with status
-                appointment_id = self.db.add_appointment(
-                    patient_id=appointment_data['patient_id'],
-                    appointment_date=appointment_data['appointment_date'],
-                    appointment_time=appointment_data['appointment_time'],
-                    notes=appointment_data.get('notes', ''),
-                    status=appointment_data.get('status', 'pending')
-                )
-                
-                # Get the new appointment data
-                updated_appointments = self.db.get_appointments_by_date(self.selected_date.strftime("%Y-%m-%d"))
-                saved_appt = next(
-                    (appt for appt in updated_appointments if str(appt['id']) == str(appointment_id)),
-                    None
-                )
-                
-                # Sync the new appointment
-                if saved_appt and self.gcal:
-                    self.sync_with_google_calendar([saved_appt])
+                appointment_data = {
+                    'patient_id': appointment_data['patient_id'],
+                    'appointment_date': appointment_data['appointment_date'],
+                    'appointment_time': appointment_data['appointment_time'],
+                    'notes': appointment_data['notes'],
+                    'status': appointment_data['status']
+                }
+                appointment_id = self.db.add_appointment(appointment_data)
+                messagebox.showinfo("Success", "Appointment added successfully")
             
             # Refresh the UI without triggering another sync
             self.refresh_appointments(skip_sync=True)
@@ -1558,13 +1575,14 @@ class AppointmentDialog(ctk.CTkToplevel):
                 messagebox.showinfo("Success", "Appointment updated successfully")
             else:
                 # Create new appointment with status
-                appointment_id = self.db.add_appointment(
-                    patient_id=patient_id,
-                    appointment_date=selected_date,
-                    appointment_time=time_24h,
-                    notes=notes,
-                    status=status  # Pass the actual selected status
-                )
+                appointment_data = {
+                    'patient_id': patient_id,
+                    'appointment_date': selected_date,
+                    'appointment_time': time_24h,
+                    'notes': notes,
+                    'status': status
+                }
+                appointment_id = self.db.add_appointment(appointment_data)
                 messagebox.showinfo("Success", "Appointment added successfully")
             
             # Close dialog

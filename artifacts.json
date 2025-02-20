@@ -1,0 +1,25 @@
+{
+  "total_count": 1,
+  "artifacts": [
+    {
+      "id": 2620917931,
+      "node_id": "MDg6QXJ0aWZhY3QyNjIwOTE3OTMx",
+      "name": "ChiropracticManager-Installer",
+      "size_in_bytes": 18932510,
+      "url": "https://api.github.com/repos/njawaiddev/Junaid-Chiropractic-Appointment-Management-System/actions/artifacts/2620917931",
+      "archive_download_url": "https://api.github.com/repos/njawaiddev/Junaid-Chiropractic-Appointment-Management-System/actions/artifacts/2620917931/zip",
+      "expired": false,
+      "digest": "sha256:9134c65529b7b3b9c4f4d45b22adc41c0d490de8755ef04fb6adb6ebfd186c2e",
+      "created_at": "2025-02-20T03:32:31Z",
+      "updated_at": "2025-02-20T03:32:31Z",
+      "expires_at": "2025-05-21T03:29:49Z",
+      "workflow_run": {
+        "id": 13427285423,
+        "repository_id": 934858683,
+        "head_repository_id": 934858683,
+        "head_branch": "main",
+        "head_sha": "4ebb1c18b9d14f50894d59f37c5a710073b5b58b"
+      }
+    }
+  ]
+}

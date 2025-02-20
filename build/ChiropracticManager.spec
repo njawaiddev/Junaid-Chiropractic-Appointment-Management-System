@@ -1,9 +1,9 @@
 # -*- mode: python ; coding: utf-8 -*-
 from PyInstaller.utils.hooks import collect_all
 
-datas = [('/Users/naveedjawaid/Documents/M APP/src', 'src'), ('/Users/naveedjawaid/Documents/M APP/assets', 'assets'), ('/Users/naveedjawaid/Documents/M APP/credentials.json', '.')]
+datas = [('/Users/naveedjawaid/Documents/M APP/src', 'src'), ('/Users/naveedjawaid/Documents/M APP/assets', 'assets'), ('/Users/naveedjawaid/Documents/M APP/venv/Lib/site-packages/google_auth_oauthlib', 'google_auth_oauthlib'), ('/Users/naveedjawaid/Documents/M APP/venv/Lib/site-packages/oauthlib', 'oauthlib'), ('/Users/naveedjawaid/Documents/M APP/credentials.json', '.')]
 binaries = []
-hiddenimports = ['google_auth_oauthlib.flow', 'google.auth.transport.requests', 'google.oauth2.credentials', 'google_auth_oauthlib', 'google.auth', 'google.oauth2', 'google_auth_httplib2', 'googleapiclient', 'PIL._tkinter_finder', 'babel.numbers', 'google.auth.transport.requests', 'google.oauth2.credentials', 'google_auth_oauthlib.flow', 'requests_oauthlib', 'oauthlib', 'oauthlib.oauth2']
+hiddenimports = ['google_auth_oauthlib.flow', 'google.auth.transport.requests', 'google.oauth2.credentials', 'google_auth_oauthlib', 'google.auth', 'google.oauth2', 'google_auth_httplib2', 'googleapiclient', 'PIL._tkinter_finder', 'babel.numbers', 'google.auth.transport.requests', 'google.oauth2.credentials', 'google_auth_oauthlib.flow', 'requests_oauthlib', 'oauthlib', 'oauthlib.oauth2', 'google_auth_oauthlib.session', 'google_auth_oauthlib.helpers', 'google_auth_oauthlib.interactive']
 tmp_ret = collect_all('google_auth_oauthlib')
 datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
 tmp_ret = collect_all('google_auth_httplib2')

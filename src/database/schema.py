@@ -3,20 +3,45 @@ CREATE TABLE IF NOT EXISTS patients (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     
     -- Mandatory Fields
-    first_name TEXT NOT NULL,
-    last_name TEXT NOT NULL,
+    first_name TEXT NOT NULL,  -- Given Name
+    last_name TEXT NOT NULL,   -- Family Name
     gender TEXT NOT NULL,
     age INTEGER NOT NULL,
-    phone TEXT NOT NULL,
+    phone TEXT NOT NULL,       -- Primary Phone
     registration_date DATE DEFAULT CURRENT_DATE,
     
     -- Optional Personal & Contact Details
     title TEXT,
-    email TEXT,
+    middle_name TEXT,          -- Additional Name
+    nickname TEXT,             -- Nickname
+    organization TEXT,         -- Company/Organization
+    job_title TEXT,           -- Job Title/Department
+    email TEXT,               -- Primary Email
+    secondary_phone TEXT,      -- Secondary Phone
+    work_phone TEXT,          -- Work Phone
+    secondary_email TEXT,      -- Secondary Email
+    work_email TEXT,          -- Work Email
+    website TEXT,             -- Website
+    
+    -- Primary Address
     address_street TEXT,
     address_city TEXT,
     address_state TEXT,
     address_zip TEXT,
+    
+    -- Secondary Address
+    secondary_address_street TEXT,
+    secondary_address_city TEXT,
+    secondary_address_state TEXT,
+    secondary_address_zip TEXT,
+    
+    -- Work Address
+    work_address_street TEXT,
+    work_address_city TEXT,
+    work_address_state TEXT,
+    work_address_zip TEXT,
+    
+    -- Emergency Contact
     emergency_contact_name TEXT,
     emergency_contact_phone TEXT,
     emergency_contact_relation TEXT,
@@ -36,6 +61,7 @@ CREATE TABLE IF NOT EXISTS patients (
     
     -- General Notes
     remarks TEXT,
+    notes TEXT,               -- Additional Notes
     
     -- Validation constraints
     CHECK (
