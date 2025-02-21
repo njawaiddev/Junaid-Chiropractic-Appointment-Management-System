@@ -9,6 +9,7 @@ import webbrowser
 import csv
 from utils.colors import *
 from utils.google_calendar import GoogleCalendarManager
+from utils.network import check_internet_connection
 
 class SettingsFrame(ctk.CTkFrame):
     def __init__(self, parent, db):
@@ -892,7 +893,13 @@ class SettingsFrame(ctk.CTkFrame):
     def manual_sync(self):
         """Manually sync appointments with Google Calendar"""
         try:
-            from utils.google_calendar import GoogleCalendarManager
+            # First check internet connection
+            if not check_internet_connection():
+                messagebox.showwarning(
+                    "No Internet Connection",
+                    "Internet connection is not available. Please check your connection and try again."
+                )
+                return
             
             # Initialize Google Calendar manager
             gcal = GoogleCalendarManager()
@@ -922,6 +929,22 @@ class SettingsFrame(ctk.CTkFrame):
     def check_auth_status(self):
         """Check Google Calendar authorization status"""
         try:
+            # First check internet connection
+            if not check_internet_connection():
+                self.auth_status_label.configure(
+                    text="Internet connection not available",
+                    text_color=WARNING_AMBER
+                )
+                self.auth_button.configure(
+                    text="Check Connection",
+                    fg_color=WARNING_AMBER,
+                    hover_color="#F59E0B",  # Darker amber
+                    command=self.check_auth_status  # Will recheck when clicked
+                )
+                self.sync_button.configure(state="disabled")
+                self.email_label.configure(text="")
+                return
+            
             gcal = GoogleCalendarManager()
             if gcal.is_authenticated():
                 email = gcal.get_connected_email()
@@ -948,83 +971,77 @@ class SettingsFrame(ctk.CTkFrame):
                     hover_color=PRIMARY_DARK
                 )
                 self.sync_button.configure(state="disabled")
-                self.email_label.configure(text="")
         except Exception as e:
             self.auth_status_label.configure(
                 text=f"Error checking auth status: {str(e)}",
                 text_color=ERROR_RED
             )
             self.sync_button.configure(state="disabled")
-            self.email_label.configure(text="")
     
     def authorize_google_calendar(self):
         """Start Google Calendar authorization process"""
         try:
-            # First check if credentials file exists
-            if not self.sync_config['credentials_path'] or not os.path.exists(self.sync_config['credentials_path']):
-                messagebox.showerror(
-                    "Missing Credentials",
-                    "Please select your Google Calendar credentials file first.\n\n"
-                    "To get credentials:\n"
-                    "1. Go to Google Cloud Console\n"
-                    "2. Create a project or select existing one\n"
-                    "3. Enable Google Calendar API\n"
-                    "4. Create OAuth 2.0 credentials (Desktop application)\n"
-                    "5. Download the credentials file\n"
-                    "6. Select it using the Browse button below"
+            # First check internet connection
+            if not check_internet_connection():
+                messagebox.showwarning(
+                    "No Internet Connection",
+                    "Internet connection is required to authorize Google Calendar. " +
+                    "Please check your connection and try again."
                 )
                 return
             
-            gcal = GoogleCalendarManager(credentials_path=self.sync_config['credentials_path'])
-            auth_url = gcal.get_authorization_url()
+            gcal = GoogleCalendarManager()
             
-            if auth_url:
-                # Open the authorization URL in default browser
-                webbrowser.open(auth_url)
+            if gcal.authenticate():
+                # Force a refresh of the auth status
+                self.check_auth_status()
                 
-                # Show instructions to user
+                # Update UI elements directly
+                email = gcal.get_connected_email()
+                email_text = f" - {email}" if email else ""
+                
+                self.auth_status_label.configure(
+                    text=f"Successfully authenticated with Google Calendar{email_text}",
+                    text_color=SUCCESS_GREEN
+                )
+                self.auth_button.configure(
+                    text="Re-authorize Google Calendar",
+                    fg_color=SUCCESS_GREEN,
+                    hover_color=SUCCESS_GREEN_HOVER
+                )
+                self.sync_button.configure(state="normal")
+                
                 messagebox.showinfo(
-                    "Google Calendar Authorization",
-                    "A browser window has been opened for Google Calendar authorization.\n\n"
-                    "Please:\n"
-                    "1. Sign in with your Google account\n"
-                    "2. Grant the requested permissions\n"
-                    "3. Copy the authorization code shown\n"
-                    "4. Return to this window and click OK to proceed\n\n"
-                    "Note: If you see a warning about unverified app, click 'Continue' as this is your own app instance."
+                    "Success",
+                    "Successfully authenticated with Google Calendar!"
                 )
-                
-                # Get authorization code from user
-                from tkinter import simpledialog
-                auth_code = simpledialog.askstring(
-                    "Authorization Code",
-                    "Please enter the authorization code from Google:",
-                    parent=self
-                )
-                
-                if auth_code:
-                    # Complete authorization with the code
-                    if gcal.complete_authorization(auth_code):
-                        messagebox.showinfo(
-                            "Success",
-                            "Successfully authorized with Google Calendar!"
-                        )
-                        self.check_auth_status()
-                    else:
-                        messagebox.showerror(
-                            "Error",
-                            "Failed to complete authorization. Please ensure you copied the entire code correctly and try again."
-                        )
             else:
                 messagebox.showerror(
                     "Error",
-                    "Failed to generate authorization URL. Please ensure your credentials file is valid."
+                    "Failed to authenticate with Google Calendar"
                 )
+                # Reset UI to unauthenticated state
+                self.auth_status_label.configure(
+                    text="Not authenticated with Google Calendar",
+                    text_color=WARNING_AMBER
+                )
+                self.auth_button.configure(
+                    text="Authorize Google Calendar",
+                    fg_color=PRIMARY_BLUE,
+                    hover_color=PRIMARY_DARK
+                )
+                self.sync_button.configure(state="disabled")
         except Exception as e:
             messagebox.showerror(
                 "Error",
-                f"Failed to start authorization process: {str(e)}"
+                f"Failed to authenticate: {str(e)}"
             )
+            # Reset UI to error state
+            self.auth_status_label.configure(
+                text=f"Error checking auth status: {str(e)}",
+                text_color=ERROR_RED
+            )
+            self.sync_button.configure(state="disabled")
     
     def sync_all_appointments(self):
         """Sync all appointments with Google Calendar"""

@@ -16,6 +16,7 @@ import calendar
 from utils.google_calendar import GoogleCalendarManager
 import os
 import json
+from utils.network import should_attempt_gcal_sync
 
 # Add hover color constants if not defined in colors.py
 WARNING_AMBER_HOVER = "#F59E0B"  # Darker amber for hover
@@ -55,8 +56,14 @@ class DashboardFrame(ctk.CTkFrame):
             print(f"Error during initial sync: {str(e)}")
 
     def try_init_gcal(self):
-        """Initialize Google Calendar if credentials exist"""
+        """Initialize Google Calendar if credentials exist and internet is available"""
         try:
+            # Check if we should attempt sync
+            if not should_attempt_gcal_sync(self.db._get_app_data_dir()):
+                print("Skipping Google Calendar sync - offline mode or sync disabled")
+                self.gcal = None
+                return False
+                
             # Load sync config
             sync_config_file = os.path.join(self.db._get_app_data_dir(), "sync_config.json")
             if os.path.exists(sync_config_file):
@@ -65,11 +72,17 @@ class DashboardFrame(ctk.CTkFrame):
                     
                 if sync_config.get('auto_sync', True):  # Default to True if not set
                     self.gcal = GoogleCalendarManager()
-                    if self.gcal.authenticate():
-                        print("Successfully authenticated with Google Calendar")
-                        return True
-                    else:
-                        print("Failed to authenticate with Google Calendar")
+                    try:
+                        if self.gcal.authenticate(silent=True):
+                            print("Successfully authenticated with Google Calendar")
+                            return True
+                        else:
+                            print("Failed to authenticate with Google Calendar")
+                            self.gcal = None
+                            return False
+                    except Exception as auth_error:
+                        print(f"Google Calendar authentication error: {str(auth_error)}")
+                        self.gcal = None
                         return False
             else:
                 # Create default config with auto-sync enabled
@@ -82,8 +95,7 @@ class DashboardFrame(ctk.CTkFrame):
                 with open(sync_config_file, 'w') as f:
                     json.dump(sync_config, f)
                 
-                self.gcal = GoogleCalendarManager()
-                return self.gcal.authenticate()
+                return False  # Don't try to authenticate without credentials
                 
         except Exception as e:
             print(f"Google Calendar initialization failed: {str(e)}")

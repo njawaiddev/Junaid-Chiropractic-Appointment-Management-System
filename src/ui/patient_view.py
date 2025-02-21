@@ -855,6 +855,9 @@ class PatientFrame(ctk.CTkFrame):
         self.session_tree.tag_configure('cancelled', foreground=ERROR_RED)
         self.session_tree.tag_configure('info', foreground=TEXT_SECONDARY)
         self.session_tree.tag_configure('error', foreground=ERROR_RED)
+        
+        # Bind double-click event for viewing notes
+        self.session_tree.bind('<Double-1>', self.view_notes)
     
     def create_field_frame(self, parent, label_text):
         """Create a frame for a field with label"""
@@ -1181,7 +1184,7 @@ class PatientFrame(ctk.CTkFrame):
             traceback.print_exc()
     
     def refresh_session_history(self, sessions):
-        """Refresh the session history tree with both appointments and session history"""
+        """Refresh the session history tree with complete patient history"""
         try:
             # Clear existing items
             for item in self.session_tree.get_children():
@@ -1196,117 +1199,70 @@ class PatientFrame(ctk.CTkFrame):
             if not self.patient_id:
                 return
 
-            # Get future appointments
+            # Get complete patient history
+            history_entries = self.db.get_complete_patient_history(self.patient_id)
+            
+            # Get future appointments for next appointment info
             future_appointments = self.db.get_future_appointments(self.patient_id)
             
-            # Get all appointment tables
-            self.db.connect()
-            try:
-                tables = self.db.cursor.execute(
-                    "SELECT name FROM sqlite_master WHERE type='table' AND name LIKE 'appointments_%'"
-                ).fetchall()
+            row_count = 0  # For alternating row colors
+            
+            # Add all history entries to the tree
+            for entry in history_entries:
+                # Format date and time
+                if entry['entry_type'] == 'appointment':
+                    time_obj = datetime.strptime(entry['appointment_time'], '%H:%M')
+                    time_str = time_obj.strftime('%I:%M %p')
+                    date_str = f"{entry['appointment_date']} {time_str}"
+                else:
+                    date_str = entry['appointment_date']
                 
-                # Get all past appointments
-                all_appointments = []
-                current_date = datetime.now().strftime("%Y-%m-%d")
+                # Get next appointment info
+                next_appt = ""
+                if future_appointments:
+                    next_date = future_appointments[0][0]
+                    next_time = format_time_12hr(future_appointments[0][1])
+                    next_appt = f"{next_date} {next_time}"
                 
-                # Check each appointments table for past appointments
-                for table in tables:
-                    table_name = table[0]
-                    appointments = self.db.cursor.execute(
-                        f"""
-                        SELECT appointment_date, appointment_time, status, notes
-                        FROM {table_name}
-                        WHERE patient_id = ?
-                        ORDER BY appointment_date DESC, appointment_time DESC
-                        """,
-                        (self.patient_id,)
-                    ).fetchall()
-                    all_appointments.extend(appointments)
+                # Determine row tags for styling
+                status = entry['status'].lower()
+                row_tags = [str(entry['id']), status]
+                if row_count % 2 == 0:
+                    row_tags.append('evenrow')
+                else:
+                    row_tags.append('oddrow')
+                row_count += 1
                 
-                # Sort all entries by date
-                all_entries = []
-                
-                # Add all appointments (both past and future)
-                for appt in all_appointments:
-                    # Find next appointment
-                    next_appt = ""
-                    if future_appointments:
-                        next_date = future_appointments[0][0]
-                        next_time = format_time_12hr(future_appointments[0][1])
-                        next_appt = f"{next_date} {next_time}"
-                    
-                    # Format current appointment time
-                    current_time = format_time_12hr(appt[1])
-                    
-                    entry = {
-                        'date': f"{appt[0]} {current_time}",
-                        'type': 'Appointment',
-                        'status': appt[2] or 'pending',
-                        'notes': appt[3] or '',
-                        'next_appointment': next_appt if appt[0] < current_date else ''
-                    }
-                    all_entries.append(entry)
-                
-                # Add session history entries
-                for session in sessions:
-                    # Find next appointment
-                    next_appt = ""
-                    if future_appointments:
-                        next_date = future_appointments[0][0]
-                        next_time = format_time_12hr(future_appointments[0][1])
-                        next_appt = f"{next_date} {next_time}"
-                    
-                    entry = {
-                        'date': session['session_date'],
-                        'type': 'Session',
-                        'status': 'done',
-                        'notes': session.get('treatment_notes', '') or '',
-                        'next_appointment': next_appt
-                    }
-                    all_entries.append(entry)
-                
-                # Sort all entries by date in descending order (most recent first)
-                all_entries.sort(key=lambda x: x['date'], reverse=True)
-                
-                # Insert into treeview
-                for entry in all_entries:
-                    self.session_tree.insert(
-                        "",
-                        "end",
-                        values=(
-                            entry['date'],
-                            entry['type'],
-                            entry['status'].capitalize(),
-                            entry['notes'],
-                            entry['next_appointment']
-                        ),
-                        tags=(entry['status'].lower(),)
-                    )
-                    
-                # If no entries found, add a placeholder message
-                if not all_entries:
-                    self.session_tree.insert(
-                        "",
-                        "end",
-                        values=("No session history available", "-", "-", "-", "-"),
-                        tags=('info',)
-                    )
-                    
-            finally:
-                self.db.close()
+                # Insert the entry
+                self.session_tree.insert(
+                    "",
+                    "end",
+                    values=(
+                        date_str,
+                        entry['entry_type'].capitalize(),
+                        status.capitalize(),
+                        entry['notes'] or "",
+                        next_appt
+                    ),
+                    tags=tuple(row_tags)
+                )
+            
+            # If no history, show message
+            if not history_entries:
+                self.session_tree.insert(
+                    "",
+                    "end",
+                    values=("No history available", "", "", "", ""),
+                    tags=('message',)
+                )
             
         except Exception as e:
             print(f"Error refreshing session history: {str(e)}")
             import traceback
             traceback.print_exc()
-            
-            # Show error in tree
-            self.session_tree.insert(
-                "",
-                "end",
-                values=("Error loading session history", "-", "-", str(e), "-"),
-                tags=('error',)
+            messagebox.showerror(
+                "Error",
+                "Failed to refresh patient history. Please try again."
             )
     
     def add_patient(self):
@@ -1582,4 +1538,78 @@ class PatientFrame(ctk.CTkFrame):
             if len(digits) > 0 and (len(digits) < 10 or len(digits) > 15):
                 self.emergency_phone_entry.configure(border_color=ERROR_RED)
             else:
-                self.emergency_phone_entry.configure(border_color=PRIMARY_BLUE) 
+                self.emergency_phone_entry.configure(border_color=PRIMARY_BLUE)
+
+    def view_notes(self, event):
+        """Handle double-click event to view notes"""
+        region = self.session_tree.identify_region(event.x, event.y)
+        if region == "cell":
+            try:
+                item = self.session_tree.selection()[0]
+                values = self.session_tree.item(item)["values"]
+                
+                # Get the date and type
+                date_str = values[0]
+                entry_type = values[1]
+                notes = values[3]
+                
+                # Show notes in dialog
+                dialog = NotesDialog(
+                    self,
+                    f"{entry_type} Notes - {date_str}",
+                    notes if notes else "No notes available"
+                )
+            except Exception as e:
+                print(f"Error viewing notes: {str(e)}")
+                import traceback
+                traceback.print_exc()
+
+class NotesDialog(ctk.CTkToplevel):
+    def __init__(self, parent, title, notes):
+        super().__init__(parent)
+        self.title(title)
+        
+        # Set size and position
+        window_width = 500
+        window_height = 400
+        screen_width = self.winfo_screenwidth()
+        screen_height = self.winfo_screenheight()
+        center_x = int(screen_width/2 - window_width/2)
+        center_y = int(screen_height/2 - window_height/2)
+        self.geometry(f'{window_width}x{window_height}+{center_x}+{center_y}')
+        
+        # Make dialog modal
+        self.transient(parent)
+        self.grab_set()
+        
+        # Main container
+        main_frame = ctk.CTkFrame(self, fg_color=BG_WHITE)
+        main_frame.pack(fill="both", expand=True, padx=20, pady=20)
+        
+        # Notes text area
+        self.notes_text = ctk.CTkTextbox(
+            main_frame,
+            height=300,
+            fg_color="white",
+            border_color=BORDER_LIGHT,
+            text_color=TEXT_PRIMARY,
+            font=("Helvetica", 12)
+        )
+        self.notes_text.pack(fill="both", expand=True, padx=10, pady=(0, 10))
+        self.notes_text.insert("1.0", notes)
+        self.notes_text.configure(state="disabled")  # Make read-only
+        
+        # Close button
+        ctk.CTkButton(
+            main_frame,
+            text="Close",
+            command=self.destroy,
+            width=100,
+            height=32,
+            corner_radius=16,
+            fg_color=PRIMARY_BLUE,
+            hover_color=PRIMARY_DARK
+        ).pack(pady=(10, 0))
+        
+        # Bind escape key to close
+        self.bind("<Escape>", lambda e: self.destroy()) 

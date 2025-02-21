@@ -10,6 +10,7 @@ from ui.settings import SettingsFrame
 from ui.statistics import StatisticsFrame
 from database.db_manager import DatabaseManager
 from utils.backup_scheduler import BackupScheduler
+from utils.network import check_internet_connection, show_offline_prompt
 from utils.colors import *
 
 DEVELOPER_NAME = "Naveed Jawaid"
@@ -25,9 +26,15 @@ if sys.platform == "darwin":
 
 class ChiropracticApp:
     def __init__(self):
+        # Check internet connectivity first
+        self.offline_mode = not check_internet_connection()
+        if self.offline_mode:
+            if not show_offline_prompt():
+                raise SystemExit("User chose not to continue in offline mode")
+        
         # Initialize the main window
         self.root = ctk.CTk()
-        self.root.title(APP_NAME)
+        self.root.title(APP_NAME + (" (Offline Mode)" if self.offline_mode else ""))
         
         # Set window size and position
         window_width = 1200
@@ -45,8 +52,11 @@ class ChiropracticApp:
         # Initialize database
         self.db = DatabaseManager()
         
-        # Initialize backup scheduler
-        self.backup_scheduler = BackupScheduler(self.db)
+        # Initialize backup scheduler only if online
+        if not self.offline_mode:
+            self.backup_scheduler = BackupScheduler(self.db)
+        else:
+            self.backup_scheduler = None
         
         # Setup UI
         self.setup_ui()
@@ -241,6 +251,13 @@ class ChiropracticApp:
     def run(self):
         """Start the application"""
         try:
+            # Check internet connectivity before starting
+            if not check_internet_connection():
+                if not show_offline_prompt():
+                    # User chose not to continue
+                    self.on_closing()
+                    return
+                
             # Start the main event loop
             self.root.mainloop()
         except Exception as e:
@@ -248,7 +265,6 @@ class ChiropracticApp:
             import traceback
             traceback.print_exc()
         finally:
-            # Ensure clean shutdown
             self.on_closing()
 
 if __name__ == "__main__":

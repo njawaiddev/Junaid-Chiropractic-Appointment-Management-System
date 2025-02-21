@@ -714,4 +714,62 @@ class DatabaseManager:
                 self.db.close()
                 return False  # Re-raise any exceptions
         
-        return Transaction(self) 
+        return Transaction(self)
+
+    def get_complete_patient_history(self, patient_id):
+        """Get complete history of a patient including all appointments and sessions"""
+        self.connect()
+        try:
+            all_history = []
+            
+            # Get all appointment tables
+            tables = self.cursor.execute(
+                "SELECT name FROM sqlite_master WHERE type='table' AND name LIKE 'appointments_%'"
+            ).fetchall()
+            
+            # Get appointments from all tables
+            for table in tables:
+                table_name = table[0]
+                query = f"""
+                SELECT 
+                    a.id,
+                    a.appointment_date,
+                    a.appointment_time,
+                    a.status,
+                    a.notes,
+                    'appointment' as entry_type,
+                    datetime(a.appointment_date || ' ' || a.appointment_time) as sort_date
+                FROM {table_name} a
+                WHERE a.patient_id = ?
+                """
+                self.cursor.execute(query, (patient_id,))
+                appointments = [dict(row) for row in self.cursor.fetchall()]
+                all_history.extend(appointments)
+            
+            # Get session history
+            query = """
+            SELECT 
+                id,
+                session_date as appointment_date,
+                '' as appointment_time,
+                'completed' as status,
+                treatment_notes as notes,
+                'session' as entry_type,
+                datetime(session_date) as sort_date
+            FROM session_history 
+            WHERE patient_id = ?
+            """
+            self.cursor.execute(query, (patient_id,))
+            sessions = [dict(row) for row in self.cursor.fetchall()]
+            all_history.extend(sessions)
+            
+            # Sort all entries by date and time
+            all_history.sort(key=lambda x: x['sort_date'], reverse=True)
+            
+            return all_history
+            
+        except sqlite3.Error as e:
+            print(f"Database error: {str(e)}")
+            return []
+        finally:
+            self.close() 
