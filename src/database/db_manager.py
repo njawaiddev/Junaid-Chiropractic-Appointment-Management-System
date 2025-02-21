@@ -704,13 +704,10 @@ class DatabaseManager:
             def __exit__(self, exc_type, exc_val, exc_tb):
                 if exc_type is None:
                     # No exception occurred, commit the transaction
-                    if self.db.conn:
-                        self.db.conn.commit()
+                    self.db.conn.commit()
                 else:
                     # An exception occurred, rollback the transaction
-                    if self.db.conn:
-                        self.db.conn.rollback()
-                # Always close the connection
+                    self.db.conn.rollback()
                 self.db.close()
                 return False  # Re-raise any exceptions
         

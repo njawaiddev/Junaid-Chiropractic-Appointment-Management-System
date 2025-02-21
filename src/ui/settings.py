@@ -358,9 +358,30 @@ class SettingsFrame(ctk.CTkFrame):
                 'duplicate': 0
             }
             
-            with open(file_path, 'r', encoding='utf-8') as file:
-                reader = csv.DictReader(file)
-                
+            # Try different encodings for Windows compatibility
+            encodings = ['utf-8', 'utf-8-sig', 'cp1252', 'latin1']
+            file_content = None
+            
+            for encoding in encodings:
+                try:
+                    with open(file_path, 'r', encoding=encoding) as file:
+                        file_content = file.read()
+                        break
+                except UnicodeDecodeError:
+                    continue
+            
+            if file_content is None:
+                raise Exception("Could not read the CSV file with any supported encoding")
+            
+            import io
+            import csv
+            
+            # Process the CSV content
+            csv_file = io.StringIO(file_content)
+            reader = csv.DictReader(csv_file)
+            
+            # Begin database transaction
+            with self.db.transaction():
                 for row in reader:
                     try:
                         # Get name fields
@@ -379,10 +400,13 @@ class SettingsFrame(ctk.CTkFrame):
                         for i in range(1, 4):  # Check Phone 1, 2, and 3
                             phone_value = row.get(f'Phone {i} - Value', '').strip()
                             if phone_value:
-                                # Clean up phone number
-                                cleaned_phone = '+' + ''.join(filter(str.isdigit, phone_value[1:])) if phone_value.startswith('+') else ''.join(filter(str.isdigit, phone_value))
-                                if len(cleaned_phone.replace('+', '')) >= 10:  # Valid phone number
-                                    phone = cleaned_phone
+                                # Clean up phone number - more robust cleaning
+                                cleaned_phone = ''.join(filter(str.isdigit, phone_value))
+                                if cleaned_phone.startswith('1') and len(cleaned_phone) > 10:
+                                    cleaned_phone = cleaned_phone[1:]  # Remove leading 1
+                                if len(cleaned_phone) >= 10:  # Valid phone number
+                                    # Format as XXX-XXX-XXXX
+                                    phone = f"{cleaned_phone[:3]}-{cleaned_phone[3:6]}-{cleaned_phone[6:10]}"
                                     break
                         
                         # Skip if no valid phone number found
@@ -394,9 +418,9 @@ class SettingsFrame(ctk.CTkFrame):
                         # Create patient data with mandatory fields
                         patient_data = {
                             'first_name': first_name,
-                            'last_name': last_name or '',  # Use empty string if last_name is empty
+                            'last_name': last_name or 'Unknown',  # Use 'Unknown' if last_name is empty
                             'phone': phone,
-                            'age': 0,  # Default value to satisfy constraint
+                            'age': 1,  # Default value to satisfy constraint
                             'gender': 'Other',  # Default value to satisfy constraint
                         }
                         
@@ -404,7 +428,7 @@ class SettingsFrame(ctk.CTkFrame):
                         if middle_name:
                             patient_data['middle_name'] = middle_name
                         
-                        # Add name prefix and suffix if present
+                        # Add name prefix if present
                         name_prefix = row.get('Name Prefix', '').strip()
                         if name_prefix:
                             patient_data['title'] = name_prefix
