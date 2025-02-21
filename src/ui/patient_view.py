@@ -988,11 +988,13 @@ class PatientFrame(ctk.CTkFrame):
             with self.db.transaction() as db:
                 if self.patient_id:  # Update existing patient
                     db.update_patient(self.patient_id, patient_data)
+                    message = "Patient updated successfully!"
                 else:  # Add new patient
                     new_patient_id = db.add_patient(patient_data)
-                    self.patient_id = new_patient_id
+                    self.patient_id = new_patient_id  # Update the patient_id with the new ID
+                    message = "New patient added successfully!"
 
-                messagebox.showinfo("Success", "Patient saved successfully!")
+                messagebox.showinfo("Success", message)
                 self.refresh_patient_list()
                 return True
 
@@ -1248,6 +1250,10 @@ class PatientFrame(ctk.CTkFrame):
     
     def add_patient(self):
         """Clear fields for new patient"""
+        # Reset patient_id for new patient
+        self.patient_id = None
+        
+        # Clear any selected items in the tree
         self.patient_tree.selection_remove(self.patient_tree.selection())
         
         # Clear Name fields
