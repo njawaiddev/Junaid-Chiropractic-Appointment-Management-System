@@ -11,6 +11,7 @@ a = Analysis(
         ('src/utils/*.py', 'utils/'),
         ('src/ui/*.py', 'ui/'),
         ('src/database/*.py', 'database/'),
+        ('LICENSE.txt', '.'),
     ],
     hiddenimports=[
         'PIL._tkinter_finder',
@@ -19,6 +20,16 @@ a = Analysis(
         'google.oauth2.credentials',
         'google_auth_oauthlib.flow',
         'googleapiclient.discovery',
+        'customtkinter',
+        'icalendar',
+        'sqlite3',
+        'tkinter',
+        'PIL',
+        'json',
+        'datetime',
+        'calendar',
+        'webbrowser',
+        'socket',
     ],
     hookspath=[],
     hooksconfig={},
@@ -35,17 +46,13 @@ pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
 exe = EXE(
     pyz,
     a.scripts,
-    a.binaries,
-    a.zipfiles,
-    a.datas,
     [],
+    exclude_binaries=True,
     name='ChiropracticManager',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
     upx=True,
-    upx_exclude=[],
-    runtime_tmpdir=None,
     console=False,
     disable_windowed_traceback=False,
     target_arch=None,
@@ -58,11 +65,12 @@ exe = EXE(
 coll = COLLECT(
     exe,
     a.binaries,
+    a.zipfiles,
     a.datas,
     strip=False,
     upx=True,
     upx_exclude=[],
-    name='ChiropracticManager',
+    name='ChiropracticManager'
 )
 
 app = BUNDLE(

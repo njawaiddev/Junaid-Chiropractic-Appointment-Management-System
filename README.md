@@ -18,11 +18,15 @@ A comprehensive management system for chiropractic clinics, featuring appointmen
 ### Windows Users
 
 1. Download the latest installer: [ChiropracticManager_Setup_v2.exe](releases/ChiropracticManager_Setup_v2.exe)
-2. Run the installer
+2. Run the installer as administrator
 3. Follow the installation wizard
 4. Launch the application from your Start Menu or Desktop shortcut
 
+Note: This is a standalone installer. You don't need to install Python or any other dependencies - everything is included in the installer.
+
 ### For Developers
+
+If you want to modify or build the application from source:
 
 #### Prerequisites
 - Python 3.9 or later
