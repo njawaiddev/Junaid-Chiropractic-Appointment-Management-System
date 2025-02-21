@@ -71,7 +71,14 @@ class DashboardFrame(ctk.CTkFrame):
                     sync_config = json.load(f)
                     
                 if sync_config.get('auto_sync', True):  # Default to True if not set
-                    self.gcal = GoogleCalendarManager()
+                    # Get credentials path from config
+                    credentials_path = sync_config.get('credentials_path')
+                    if not credentials_path or not os.path.exists(credentials_path):
+                        print("Google Calendar credentials not found")
+                        return False
+                        
+                    # Initialize with credentials path
+                    self.gcal = GoogleCalendarManager(credentials_path=credentials_path)
                     try:
                         if self.gcal.authenticate(silent=True):
                             print("Successfully authenticated with Google Calendar")
@@ -1060,28 +1067,15 @@ class DashboardFrame(ctk.CTkFrame):
             traceback.print_exc()
 
     def save_appointment(self, appointment_data):
-        """Save appointment data to database"""
+        """Save appointment to database"""
         try:
-            # Validate appointment data
-            if not appointment_data.get('patient_id'):
-                messagebox.showerror("Error", "Please select a patient")
-                return False
+            # Get app data directory for sync config
+            app_data = os.path.join(os.environ.get('LOCALAPPDATA', ''), 'ChiropracticManager') if os.name == 'nt' else os.path.join(os.path.expanduser('~'), '.chiropracticmanager')
+            sync_config_file = os.path.join(app_data, "sync_config.json")
             
-            # Check if timeslot is available
-            if not self.db.is_timeslot_available(
-                appointment_data['appointment_date'],
-                appointment_data['appointment_time'],
-                appointment_data.get('id')  # Pass ID for updates
-            ):
-                messagebox.showerror(
-                    "Error",
-                    "This timeslot is already booked. Please select another time."
-                )
-                return False
-            
-            # Use transaction context manager for database operations
+            # Use transaction to ensure data consistency
             with self.db.transaction() as db:
-                if 'id' in appointment_data:  # Update existing appointment
+                if appointment_data.get('id'):  # Update existing
                     db.update_appointment(
                         appointment_data['id'],
                         appointment_data['patient_id'],
@@ -1090,39 +1084,67 @@ class DashboardFrame(ctk.CTkFrame):
                         appointment_data.get('notes', ''),
                         appointment_data.get('status', 'scheduled')
                     )
-                else:  # Add new appointment
-                    appointment_data['id'] = db.add_appointment(appointment_data)
-                
-                # Trigger sync if auto-sync is enabled
+                    success_msg = "Appointment updated successfully!"
+                else:  # Add new
+                    new_id = db.add_appointment(appointment_data)
+                    appointment_data['id'] = new_id
+                    success_msg = "Appointment added successfully!"
+
+                # Check if auto-sync is enabled and sync if it is
                 try:
-                    # Load sync configuration
-                    sync_config_file = os.path.join(self._get_app_data_dir(), "sync_config.json")
                     if os.path.exists(sync_config_file):
                         with open(sync_config_file, 'r') as f:
                             sync_config = json.load(f)
-                            if sync_config.get('auto_sync', True):
-                                # Get the appointment with patient name for sync
-                                appointments = db.get_appointments_by_date(appointment_data['appointment_date'])
-                                appointment = next(
-                                    (a for a in appointments if str(a['id']) == str(appointment_data['id'])),
-                                    None
-                                )
-                                if appointment:
-                                    # Import here to avoid circular imports
+                            if sync_config.get('auto_sync', False):
+                                print("Auto-sync is enabled, syncing appointment...")
+                                # Get updated appointment data for sync
+                                date_obj = datetime.strptime(appointment_data['appointment_date'], "%Y-%m-%d")
+                                month_year = date_obj.strftime("%Y_%m")
+                                query = f"""
+                                SELECT a.*, p.first_name || ' ' || p.last_name as patient_name
+                                FROM appointments_{month_year} a
+                                JOIN patients p ON a.patient_id = p.id
+                                WHERE a.id = ?
+                                """
+                                db.cursor.execute(query, (appointment_data['id'],))
+                                updated_appointment = dict(db.cursor.fetchone())
+                                
+                                # Get credentials path from config
+                                credentials_path = sync_config.get('credentials_path')
+                                if credentials_path and os.path.exists(credentials_path):
+                                    # Sync with Google Calendar using the correct credentials
                                     from utils.google_calendar import GoogleCalendarManager
-                                    gcal = GoogleCalendarManager()
+                                    gcal = GoogleCalendarManager(credentials_path=credentials_path)
                                     if gcal.is_authenticated():
-                                        gcal.sync_appointments([appointment])
+                                        print("Authenticated with Google Calendar, syncing appointment...")
+                                        if gcal.sync_appointments([updated_appointment]):
+                                            print("Successfully synced appointment to Google Calendar")
+                                        else:
+                                            print("Failed to sync appointment to Google Calendar")
+                                    else:
+                                        print("Not authenticated with Google Calendar")
+                                else:
+                                    print(f"Google Calendar credentials not found at: {credentials_path}")
+                            else:
+                                print("Auto-sync is disabled")
+                    else:
+                        print(f"Sync config file not found at: {sync_config_file}")
                 except Exception as e:
                     print(f"Error during auto-sync: {str(e)}")
-                    # Don't show error to user, just log it
-                    
-            # Refresh the appointment list
-            self.refresh_appointments()
-            return True
-            
+                    import traceback
+                    traceback.print_exc()
+                    # Don't show sync errors to user, just log them
+                    pass
+
+                # Show success message
+                messagebox.showinfo("Success", success_msg)
+                
+                # Refresh the appointment list
+                self.refresh_appointments()
+                return True
+                
         except Exception as e:
-            messagebox.showerror("Error", f"Error saving appointment: {str(e)}")
+            messagebox.showerror("Error", f"Failed to save appointment: {str(e)}")
             print(f"Error saving appointment: {str(e)}")
             import traceback
             traceback.print_exc()
