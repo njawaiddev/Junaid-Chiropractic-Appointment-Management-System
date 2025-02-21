@@ -17,6 +17,16 @@ class SettingsFrame(ctk.CTkFrame):
         self.db = db
         self.backup_config_file = os.path.join(self.db._get_app_data_dir(), "backup_config.json")
         self.sync_config_file = os.path.join(self.db._get_app_data_dir(), "sync_config.json")
+        self.sync_config = {}
+        self.backup_config = {}
+        
+        # Initialize variables before loading configs
+        self.auto_sync_var = tk.BooleanVar(value=True)
+        self.backup_enabled_var = tk.BooleanVar(value=True)
+        self.backup_frequency_var = tk.StringVar(value="daily")
+        self.backup_location_var = tk.StringVar()
+        
+        # Load configurations
         self.load_backup_config()
         self.load_sync_config()
         
@@ -62,36 +72,41 @@ class SettingsFrame(ctk.CTkFrame):
             print(f"Error saving backup config: {str(e)}")
     
     def load_sync_config(self):
-        """Load Google Calendar sync configuration"""
+        """Load sync configuration from file"""
         try:
-            # Ensure directory exists
-            os.makedirs(os.path.dirname(self.sync_config_file), exist_ok=True)
-            
-            if os.path.exists(self.sync_config_file):
-                with open(self.sync_config_file, 'r') as f:
+            config_file = os.path.join(self.db._get_app_data_dir(), "sync_config.json")
+            if os.path.exists(config_file):
+                with open(config_file, 'r') as f:
                     self.sync_config = json.load(f)
+                    
+                # Update UI to reflect loaded config
+                self.auto_sync_var.set(self.sync_config.get('auto_sync', True))
             else:
-                self.sync_config = {
-                    'auto_sync': True,  # Enable by default
-                    'last_sync': None,
-                    'credentials_path': None
-                }
+                # Create default config if file doesn't exist
+                self.sync_config = {'auto_sync': True}
                 self.save_sync_config()
         except Exception as e:
-            print(f"Error loading sync config: {str(e)}")
-            self.sync_config = {
-                'auto_sync': True,  # Enable by default
-                'last_sync': None,
-                'credentials_path': None
-            }
+            print(f"Error loading sync configuration: {str(e)}")
+            # Set default values
+            self.sync_config = {'auto_sync': True}
+            self.auto_sync_var.set(True)
     
     def save_sync_config(self):
-        """Save Google Calendar sync configuration"""
+        """Save sync configuration to file"""
         try:
-            with open(self.sync_config_file, 'w') as f:
+            config_file = os.path.join(self.db._get_app_data_dir(), "sync_config.json")
+            os.makedirs(os.path.dirname(config_file), exist_ok=True)
+            
+            with open(config_file, 'w') as f:
                 json.dump(self.sync_config, f)
+                
+            print("Sync configuration saved successfully")
         except Exception as e:
-            print(f"Error saving sync config: {str(e)}")
+            print(f"Error saving sync configuration: {str(e)}")
+            messagebox.showerror(
+                "Error",
+                "Failed to save sync configuration. Auto-sync settings may not persist."
+            )
     
     def setup_ui(self):
         """Initialize settings UI components"""
@@ -807,7 +822,6 @@ class SettingsFrame(ctk.CTkFrame):
         ).pack(anchor="w", padx=5, pady=(0, 10))
         
         # Auto-sync toggle
-        self.auto_sync_var = tk.BooleanVar(value=self.sync_config['auto_sync'])
         auto_sync = ctk.CTkCheckBox(
             sync_frame,
             text="Enable automatic sync",
@@ -927,14 +941,28 @@ class SettingsFrame(ctk.CTkFrame):
         
     def toggle_auto_sync(self):
         """Handle auto-sync toggle"""
-        is_enabled = self.auto_sync_var.get()
-        self.sync_config['auto_sync'] = is_enabled
-        self.save_sync_config()
-        
-        if is_enabled:
-            messagebox.showinfo(
-                "Auto-sync Enabled",
-                "Appointments will automatically sync with Google Calendar"
+        try:
+            is_enabled = self.auto_sync_var.get()
+            self.sync_config['auto_sync'] = is_enabled
+            self.save_sync_config()
+            
+            if is_enabled:
+                # Try to sync immediately if enabled
+                self.manual_sync()
+                messagebox.showinfo(
+                    "Auto-sync Enabled",
+                    "Appointments will automatically sync with Google Calendar"
+                )
+            else:
+                messagebox.showinfo(
+                    "Auto-sync Disabled",
+                    "Appointments will need to be synced manually"
+                )
+        except Exception as e:
+            print(f"Error toggling auto-sync: {str(e)}")
+            messagebox.showerror(
+                "Error",
+                "Failed to update auto-sync settings. Please try again."
             )
     
     def manual_sync(self):

@@ -910,16 +910,19 @@ class DashboardFrame(ctk.CTkFrame):
                 # Add appointments
                 for appt in appointments:
                     status = appt["status"].lower()
+                    # Convert time to 12-hour format
+                    time_obj = datetime.strptime(appt["appointment_time"], '%H:%M')
+                    time_12h = time_obj.strftime('%I:%M %p')
                     self.tree.insert(
                         "",
                         "end",
                         values=(
-                            appt["appointment_time"],
+                            time_12h,  # Use 12-hour format
                             appt["patient_name"],
                             status.capitalize(),
                             "View Notes" if appt["notes"] else ""
                         ),
-                        tags=(str(appt["id"]), status)  # Include appointment ID and status in tags
+                        tags=(str(appt["id"]), status)
                     )
 
     def show_monthly_view(self):
@@ -928,7 +931,9 @@ class DashboardFrame(ctk.CTkFrame):
         year = self.selected_date.year
         month = self.selected_date.month
         _, last_day = calendar.monthrange(year, month)
-        month_dates = [datetime(year, month, day) for day in range(1, last_day + 1)]
+        month_dates = [
+            datetime(year, month, day) for day in range(1, last_day + 1)
+        ]
         
         # Clear current items
         for item in self.tree.get_children():
@@ -945,16 +950,19 @@ class DashboardFrame(ctk.CTkFrame):
                 # Add appointments
                 for appt in appointments:
                     status = appt["status"].lower()
+                    # Convert time to 12-hour format
+                    time_obj = datetime.strptime(appt["appointment_time"], '%H:%M')
+                    time_12h = time_obj.strftime('%I:%M %p')
                     self.tree.insert(
                         "",
                         "end",
                         values=(
-                            appt["appointment_time"],
+                            time_12h,  # Use 12-hour format
                             appt["patient_name"],
                             status.capitalize(),
                             "View Notes" if appt["notes"] else ""
                         ),
-                        tags=(str(appt["id"]), status)  # Include appointment ID and status in tags
+                        tags=(str(appt["id"]), status)
                     )
 
     def view_notes(self, event):
@@ -1052,53 +1060,73 @@ class DashboardFrame(ctk.CTkFrame):
             traceback.print_exc()
 
     def save_appointment(self, appointment_data):
-        """Save appointment and sync with Google Calendar"""
+        """Save appointment data to database"""
         try:
-            # Save to database
-            if appointment_data.get('id'):
-                # Update existing appointment
-                self.db.update_appointment(**appointment_data)
-                
-                # Get the updated appointment data for syncing
-                updated_appointments = self.db.get_appointments_by_date(self.selected_date.strftime("%Y-%m-%d"))
-                
-                # Find the specific appointment we just saved
-                saved_appt = next(
-                    (appt for appt in updated_appointments if str(appt['id']) == str(appointment_data['id'])),
-                    None
-                )
-                
-                # Only sync this specific appointment if it exists and status has changed
-                if saved_appt and self.gcal:
-                    # Clear any existing sync time for this appointment to force a sync
-                    if hasattr(self, '_last_sync_times'):
-                        appt_id = str(saved_appt['id'])
-                        if appt_id in self._last_sync_times:
-                            del self._last_sync_times[appt_id]
-                    
-                    # Sync only this appointment
-                    self.sync_with_google_calendar([saved_appt])
-            else:
-                # Create new appointment with status
-                appointment_data = {
-                    'patient_id': appointment_data['patient_id'],
-                    'appointment_date': appointment_data['appointment_date'],
-                    'appointment_time': appointment_data['appointment_time'],
-                    'notes': appointment_data['notes'],
-                    'status': appointment_data['status']
-                }
-                appointment_id = self.db.add_appointment(appointment_data)
-                messagebox.showinfo("Success", "Appointment added successfully")
+            # Validate appointment data
+            if not appointment_data.get('patient_id'):
+                messagebox.showerror("Error", "Please select a patient")
+                return False
             
-            # Refresh the UI without triggering another sync
-            self.refresh_appointments(skip_sync=True)
+            # Check if timeslot is available
+            if not self.db.is_timeslot_available(
+                appointment_data['appointment_date'],
+                appointment_data['appointment_time'],
+                appointment_data.get('id')  # Pass ID for updates
+            ):
+                messagebox.showerror(
+                    "Error",
+                    "This timeslot is already booked. Please select another time."
+                )
+                return False
+            
+            # Use transaction context manager for database operations
+            with self.db.transaction() as db:
+                if 'id' in appointment_data:  # Update existing appointment
+                    db.update_appointment(
+                        appointment_data['id'],
+                        appointment_data['patient_id'],
+                        appointment_data['appointment_date'],
+                        appointment_data['appointment_time'],
+                        appointment_data.get('notes', ''),
+                        appointment_data.get('status', 'scheduled')
+                    )
+                else:  # Add new appointment
+                    appointment_data['id'] = db.add_appointment(appointment_data)
+                
+                # Trigger sync if auto-sync is enabled
+                try:
+                    # Load sync configuration
+                    sync_config_file = os.path.join(self._get_app_data_dir(), "sync_config.json")
+                    if os.path.exists(sync_config_file):
+                        with open(sync_config_file, 'r') as f:
+                            sync_config = json.load(f)
+                            if sync_config.get('auto_sync', True):
+                                # Get the appointment with patient name for sync
+                                appointments = db.get_appointments_by_date(appointment_data['appointment_date'])
+                                appointment = next(
+                                    (a for a in appointments if str(a['id']) == str(appointment_data['id'])),
+                                    None
+                                )
+                                if appointment:
+                                    # Import here to avoid circular imports
+                                    from utils.google_calendar import GoogleCalendarManager
+                                    gcal = GoogleCalendarManager()
+                                    if gcal.is_authenticated():
+                                        gcal.sync_appointments([appointment])
+                except Exception as e:
+                    print(f"Error during auto-sync: {str(e)}")
+                    # Don't show error to user, just log it
+                    
+            # Refresh the appointment list
+            self.refresh_appointments()
+            return True
             
         except Exception as e:
+            messagebox.showerror("Error", f"Error saving appointment: {str(e)}")
             print(f"Error saving appointment: {str(e)}")
-            messagebox.showerror(
-                "Error",
-                f"Failed to save appointment: {str(e)}"
-            )
+            import traceback
+            traceback.print_exc()
+            return False
 
 class AppointmentDialog(ctk.CTkToplevel):
     def __init__(self, parent, db, date, edit_mode=False, initial_values=None):

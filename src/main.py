@@ -14,7 +14,7 @@ from utils.network import check_internet_connection, show_offline_prompt
 from utils.colors import *
 
 APP_NAME = "Junaid Chiropractic Management System"
-APP_VERSION = "2.0.0"  # Updated version number
+APP_VERSION = "2.1.1"  # Updated version number
 DEVELOPER_NAME = "Naveed Jawaid"
 
 # Add macOS specific imports
