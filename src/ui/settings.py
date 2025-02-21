@@ -423,11 +423,14 @@ class SettingsFrame(ctk.CTkFrame):
                         # Create patient data with mandatory fields
                         patient_data = {
                             'first_name': first_name,
-                            'last_name': last_name or 'Unknown',  # Use 'Unknown' if last_name is empty
                             'phone': phone,
                             'age': 1,  # Default value to satisfy constraint
                             'gender': 'Other',  # Default value to satisfy constraint
                         }
+                        
+                        # Add last name only if it exists
+                        if last_name:
+                            patient_data['last_name'] = last_name
                         
                         # Add middle name if present
                         if middle_name:
@@ -958,21 +961,47 @@ class SettingsFrame(ctk.CTkFrame):
             # Initialize Google Calendar manager
             gcal = GoogleCalendarManager()
             
-            # Get today's appointments
-            today = datetime.now().strftime("%Y-%m-%d")
-            appointments = self.db.get_appointments_by_date(today)
-            
-            # Sync appointments
-            if gcal.sync_appointments(appointments):
-                messagebox.showinfo(
-                    "Success",
-                    "Appointments synced with Google Calendar successfully!"
-                )
-            else:
-                messagebox.showerror(
-                    "Error",
-                    "Failed to sync appointments with Google Calendar"
-                )
+            # Get all future appointments
+            self.db.connect()
+            try:
+                # Get all appointment tables
+                tables = self.db.cursor.execute(
+                    "SELECT name FROM sqlite_master WHERE type='table' AND name LIKE 'appointments_%'"
+                ).fetchall()
+                
+                all_appointments = []
+                current_date = datetime.now().strftime("%Y-%m-%d")
+                
+                # Get appointments from all tables
+                for table in tables:
+                    query = f"""
+                    SELECT a.*, p.first_name || ' ' || COALESCE(p.last_name, '') as patient_name
+                    FROM {table[0]} a
+                    JOIN patients p ON a.patient_id = p.id
+                    WHERE a.appointment_date >= ?
+                    AND a.status != 'cancelled'
+                    """
+                    self.db.cursor.execute(query, (current_date,))
+                    appointments = [dict(row) for row in self.db.cursor.fetchall()]
+                    all_appointments.extend(appointments)
+                
+                # Sort appointments by date and time
+                all_appointments.sort(key=lambda x: (x['appointment_date'], x['appointment_time']))
+                
+                # Sync appointments
+                if gcal.sync_appointments(all_appointments):
+                    messagebox.showinfo(
+                        "Success",
+                        f"Successfully synced {len(all_appointments)} appointments with Google Calendar!"
+                    )
+                else:
+                    messagebox.showerror(
+                        "Error",
+                        "Failed to sync appointments with Google Calendar"
+                    )
+                    
+            finally:
+                self.db.close()
                 
         except Exception as e:
             messagebox.showerror(
