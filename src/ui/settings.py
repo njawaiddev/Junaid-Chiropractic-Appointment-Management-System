@@ -347,7 +347,7 @@ class SettingsFrame(ctk.CTkFrame):
             if not file_path:
                 return
             
-            # Read and process the CSV file
+            # Initialize counters
             imported_count = 0
             skipped_count = 0
             error_count = 0
@@ -380,8 +380,13 @@ class SettingsFrame(ctk.CTkFrame):
             csv_file = io.StringIO(file_content)
             reader = csv.DictReader(csv_file)
             
-            # Begin database transaction
-            with self.db.transaction():
+            # Establish database connection
+            self.db.connect()
+            
+            try:
+                # Begin transaction
+                self.db.cursor.execute("BEGIN TRANSACTION")
+                
                 for row in reader:
                     try:
                         # Get name fields
@@ -465,25 +470,50 @@ class SettingsFrame(ctk.CTkFrame):
                             patient_data['remarks'] = notes
                         
                         # Check for duplicate before adding
-                        try:
-                            existing = self.db.search_patients(patient_data['phone'])
-                            if existing:
-                                skipped_reasons['duplicate'] += 1
-                                skipped_count += 1
-                                continue
-                            
-                            # Add patient to database
-                            self.db.add_patient(patient_data)
-                            imported_count += 1
-                            
-                        except Exception as e:
-                            print(f"Error checking for duplicate or adding patient: {str(e)}")
-                            error_count += 1
+                        query = "SELECT id FROM patients WHERE phone = ?"
+                        self.db.cursor.execute(query, (patient_data['phone'],))
+                        existing = self.db.cursor.fetchone()
+                        
+                        if existing:
+                            skipped_reasons['duplicate'] += 1
+                            skipped_count += 1
                             continue
+                        
+                        # Prepare the query dynamically based on provided fields
+                        fields = []
+                        values = []
+                        placeholders = []
+                        
+                        for field, value in patient_data.items():
+                            if value is not None:  # Only include non-None values
+                                fields.append(field)
+                                values.append(value)
+                                placeholders.append('?')
+                        
+                        query = f"""
+                        INSERT INTO patients ({', '.join(fields)})
+                        VALUES ({', '.join(placeholders)})
+                        """
+                        
+                        self.db.cursor.execute(query, values)
+                        imported_count += 1
                         
                     except Exception as e:
                         print(f"Error importing contact: {str(e)}")
                         error_count += 1
+                
+                # Commit the transaction
+                self.db.conn.commit()
+                
+            except Exception as e:
+                # Rollback on error
+                if self.db.conn:
+                    self.db.conn.rollback()
+                raise e
+            
+            finally:
+                # Close the database connection
+                self.db.close()
             
             # Show import results with detailed breakdown
             message = f"Import completed:\n\n"
