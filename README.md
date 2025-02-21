@@ -1,27 +1,71 @@
-# Junaid Chiropractic Appointment Management System
+# Junaid Chiropractic Management System
 
-A comprehensive desktop application for managing chiropractic appointments, patient records, and session history.
+Version 2.0.0
+
+A comprehensive management system for chiropractic clinics, featuring appointment scheduling, patient management, and Google Calendar integration.
 
 ## Features
 
-- Doctor Dashboard with daily, weekly, and monthly appointment views
-- Patient Database Management
-- Appointment Scheduling and Management
-- Patient History Tracking
-- Calendar-style UI
-- SQLite Database with monthly tables
+- Patient Management
+- Appointment Scheduling
+- Google Calendar Integration
+- Offline Mode Support
+- Automatic Backups
+- Statistics and Reports
 
 ## Installation
 
-1. Ensure Python 3.8+ is installed on your system
+### Windows Users
+
+1. Download the latest installer: [ChiropracticManager_Setup_v2.exe](releases/ChiropracticManager_Setup_v2.exe)
+2. Run the installer
+3. Follow the installation wizard
+4. Launch the application from your Start Menu or Desktop shortcut
+
+### For Developers
+
+#### Prerequisites
+- Python 3.9 or later
+- pip package manager
+
+#### Setup
+1. Clone the repository:
+```bash
+git clone https://github.com/njawaiddev/Junaid-Chiropractic-Appointment-Management-System.git
+```
+
 2. Install dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
+```bash
+pip install -r requirements.txt
+```
+
 3. Run the application:
-   ```bash
-   python src/main.py
-   ```
+```bash
+python src/main.py
+```
+
+## Google Calendar Integration
+
+To use Google Calendar features:
+1. Go to Google Cloud Console
+2. Create a new project or select an existing one
+3. Enable Google Calendar API
+4. Create OAuth 2.0 credentials
+5. Download credentials.json
+6. Place credentials.json in the application data directory
+7. Authorize the application when prompted
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE.txt file for details.
+
+## Developer
+
+Naveed Jawaid
+
+## Support
+
+For support, please open an issue on GitHub or contact the developer.
 
 ## Project Structure
 

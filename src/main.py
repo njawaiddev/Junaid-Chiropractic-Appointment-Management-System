@@ -13,8 +13,9 @@ from utils.backup_scheduler import BackupScheduler
 from utils.network import check_internet_connection, show_offline_prompt
 from utils.colors import *
 
-DEVELOPER_NAME = "Naveed Jawaid"
 APP_NAME = "Junaid Chiropractic Management System"
+APP_VERSION = "2.0.0"  # Updated version number
+DEVELOPER_NAME = "Naveed Jawaid"
 
 # Add macOS specific imports
 if sys.platform == "darwin":

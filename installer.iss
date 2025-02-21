@@ -1,16 +1,22 @@
+#define MyAppName "Junaid Chiropractic Management System"
+#define MyAppVersion "2.0.0"
+#define MyAppPublisher "Naveed Jawaid"
+#define MyAppExeName "ChiropracticManager.exe"
+
 [Setup]
-AppName=Chiropractic Manager
-AppVersion=1.0
-AppPublisher=Naveed Jawaid
+AppId={{F4E7F261-9728-4A17-9F3E-A82E6B3200E1}
+AppName={#MyAppName}
+AppVersion={#MyAppVersion}
+AppPublisher={#MyAppPublisher}
 AppPublisherURL=https://github.com/njawaiddev/Junaid-Chiropractic-Appointment-Management-System
 AppSupportURL=https://github.com/njawaiddev/Junaid-Chiropractic-Appointment-Management-System
 AppUpdatesURL=https://github.com/njawaiddev/Junaid-Chiropractic-Appointment-Management-System
-DefaultDirName={autopf}\Chiropractic Manager
-DefaultGroupName=Chiropractic Manager
+DefaultDirName={autopf}\{#MyAppName}
+DefaultGroupName={#MyAppName}
 AllowNoIcons=yes
 LicenseFile=LICENSE.txt
-OutputDir=installer
-OutputBaseFilename=ChiropracticManager_Setup
+OutputDir=dist
+OutputBaseFilename=ChiropracticManager_Setup_v2
 SetupIconFile=assets\icon.ico
 Compression=lzma
 SolidCompression=yes
@@ -24,7 +30,6 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 Name: "quicklaunchicon"; Description: "{cm:CreateQuickLaunchIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked; OnlyBelowVersion: 6.1; Check: not IsAdminInstallMode
 
 [Files]
-Source: "dist\ChiropracticManager\ChiropracticManager.exe"; DestDir: "{app}"; Flags: ignoreversion
 Source: "dist\ChiropracticManager\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "assets\*"; DestDir: "{app}\assets"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "LICENSE.txt"; DestDir: "{app}"; Flags: ignoreversion
@@ -34,10 +39,10 @@ Source: "credentials.json"; DestDir: "{userappdata}\ChiropracticManager"; Flags:
 Name: "{userappdata}\ChiropracticManager"; Permissions: users-full
 
 [Icons]
-Name: "{group}\Chiropractic Manager"; Filename: "{app}\ChiropracticManager.exe"
-Name: "{group}\{cm:UninstallProgram,Chiropractic Manager}"; Filename: "{uninstallexe}"
-Name: "{autodesktop}\Chiropractic Manager"; Filename: "{app}\ChiropracticManager.exe"; Tasks: desktopicon
-Name: "{userappdata}\Microsoft\Internet Explorer\Quick Launch\Chiropractic Manager"; Filename: "{app}\ChiropracticManager.exe"; Tasks: quicklaunchicon
+Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
+Name: "{group}\{cm:UninstallProgram,{#MyAppName}}"; Filename: "{uninstallexe}"
+Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon
+Name: "{userappdata}\Microsoft\Internet Explorer\Quick Launch\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: quicklaunchicon
 
 [Run]
-Filename: "{app}\ChiropracticManager.exe"; Description: "{cm:LaunchProgram,Chiropractic Manager}"; Flags: nowait postinstall skipifsilent 
+Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent 
