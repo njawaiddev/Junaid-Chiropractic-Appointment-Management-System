@@ -41,16 +41,21 @@ class DatabaseManager:
         return app_data
 
     def connect(self):
-        """Establish database connection with proper error handling"""
+        """Connect to the database if not already connected"""
         try:
-            self.conn = sqlite3.connect(self.db_path)
-            self.conn.row_factory = sqlite3.Row
-            self.cursor = self.conn.cursor()
+            if not self.conn:
+                self.conn = sqlite3.connect(self.db_path)
+                self.conn.row_factory = sqlite3.Row
+                self.cursor = self.conn.cursor()
+            elif not self.cursor:
+                self.cursor = self.conn.cursor()
+            return self.conn
         except sqlite3.Error as e:
-            raise Exception(f"Failed to connect to database: {str(e)}")
+            print(f"Error connecting to database: {str(e)}")
+            raise
 
     def close(self):
-        """Close database connection"""
+        """Close the database connection"""
         if self.conn:
             self.conn.close()
             self.conn = None
@@ -696,19 +701,49 @@ class DatabaseManager:
         class Transaction:
             def __init__(self, db):
                 self.db = db
+                self.conn = None
+                self.previous_conn = None
+                self.previous_cursor = None
+                self.in_transaction = False
             
             def __enter__(self):
-                self.db.connect()
+                # Store the previous connection state
+                self.previous_conn = self.db.conn
+                self.previous_cursor = self.db.cursor
+                
+                # Create a new connection if needed
+                self.conn = self.db.connect()
+                self.in_transaction = True
                 return self.db
             
             def __exit__(self, exc_type, exc_val, exc_tb):
-                if exc_type is None:
-                    # No exception occurred, commit the transaction
-                    self.db.conn.commit()
-                else:
-                    # An exception occurred, rollback the transaction
-                    self.db.conn.rollback()
-                self.db.close()
+                try:
+                    if self.in_transaction:
+                        if exc_type is None:
+                            # No exception occurred, commit the transaction
+                            if self.db.conn:
+                                self.db.conn.commit()
+                        else:
+                            # An exception occurred, rollback the transaction
+                            if self.db.conn:
+                                self.db.conn.rollback()
+                except sqlite3.Error as e:
+                    print(f"Error in transaction: {str(e)}")
+                    if exc_type is None:
+                        # If there wasn't already an exception, raise this one
+                        raise
+                finally:
+                    try:
+                        # Only close if this is not a reused connection
+                        if self.db.conn and self.db.conn != self.previous_conn:
+                            self.db.close()
+                        # Restore previous connection state if it existed
+                        elif self.previous_conn:
+                            self.db.conn = self.previous_conn
+                            self.db.cursor = self.previous_cursor
+                    except Exception as e:
+                        print(f"Error cleaning up transaction: {str(e)}")
+                    self.in_transaction = False
                 return False  # Re-raise any exceptions
         
         return Transaction(self)

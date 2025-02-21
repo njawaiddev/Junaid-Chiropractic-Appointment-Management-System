@@ -4,64 +4,64 @@ CREATE TABLE IF NOT EXISTS patients (
     
     -- Mandatory Fields
     first_name TEXT NOT NULL,  -- Given Name
-    last_name TEXT NOT NULL,   -- Family Name
-    gender TEXT NOT NULL,
-    age INTEGER NOT NULL,
+    last_name TEXT DEFAULT '',   -- Family Name (optional)
+    gender TEXT NOT NULL DEFAULT 'Other',
+    age INTEGER NOT NULL DEFAULT 1,
     phone TEXT NOT NULL,       -- Primary Phone
     registration_date DATE DEFAULT CURRENT_DATE,
     
     -- Optional Personal & Contact Details
-    title TEXT,
-    middle_name TEXT,          -- Additional Name
-    nickname TEXT,             -- Nickname
-    organization TEXT,         -- Company/Organization
-    job_title TEXT,           -- Job Title/Department
-    email TEXT,               -- Primary Email
-    secondary_phone TEXT,      -- Secondary Phone
-    work_phone TEXT,          -- Work Phone
-    secondary_email TEXT,      -- Secondary Email
-    work_email TEXT,          -- Work Email
-    website TEXT,             -- Website
+    title TEXT DEFAULT '',
+    middle_name TEXT DEFAULT '',          -- Additional Name
+    nickname TEXT DEFAULT '',             -- Nickname
+    organization TEXT DEFAULT '',         -- Company/Organization
+    job_title TEXT DEFAULT '',           -- Job Title/Department
+    email TEXT DEFAULT '',               -- Primary Email
+    secondary_phone TEXT DEFAULT '',      -- Secondary Phone
+    work_phone TEXT DEFAULT '',          -- Work Phone
+    secondary_email TEXT DEFAULT '',      -- Secondary Email
+    work_email TEXT DEFAULT '',          -- Work Email
+    website TEXT DEFAULT '',             -- Website
     
     -- Primary Address
-    address_street TEXT,
-    address_city TEXT,
-    address_state TEXT,
-    address_zip TEXT,
+    address_street TEXT DEFAULT '',
+    address_city TEXT DEFAULT '',
+    address_state TEXT DEFAULT '',
+    address_zip TEXT DEFAULT '',
     
     -- Secondary Address
-    secondary_address_street TEXT,
-    secondary_address_city TEXT,
-    secondary_address_state TEXT,
-    secondary_address_zip TEXT,
+    secondary_address_street TEXT DEFAULT '',
+    secondary_address_city TEXT DEFAULT '',
+    secondary_address_state TEXT DEFAULT '',
+    secondary_address_zip TEXT DEFAULT '',
     
     -- Work Address
-    work_address_street TEXT,
-    work_address_city TEXT,
-    work_address_state TEXT,
-    work_address_zip TEXT,
+    work_address_street TEXT DEFAULT '',
+    work_address_city TEXT DEFAULT '',
+    work_address_state TEXT DEFAULT '',
+    work_address_zip TEXT DEFAULT '',
     
     -- Emergency Contact
-    emergency_contact_name TEXT,
-    emergency_contact_phone TEXT,
-    emergency_contact_relation TEXT,
+    emergency_contact_name TEXT DEFAULT '',
+    emergency_contact_phone TEXT DEFAULT '',
+    emergency_contact_relation TEXT DEFAULT '',
     
     -- Optional Medical & Chiropractic Information
-    reference_source TEXT,
-    medical_conditions TEXT,
-    past_surgeries TEXT,
-    current_medications TEXT,
-    allergies TEXT,
-    chiropractic_history TEXT,
+    reference_source TEXT DEFAULT '',
+    medical_conditions TEXT DEFAULT '',
+    past_surgeries TEXT DEFAULT '',
+    current_medications TEXT DEFAULT '',
+    allergies TEXT DEFAULT '',
+    chiropractic_history TEXT DEFAULT '',
     
     -- Optional Insurance Information
-    insurance_provider TEXT,
-    insurance_policy_number TEXT,
-    insurance_coverage_details TEXT,
+    insurance_provider TEXT DEFAULT '',
+    insurance_policy_number TEXT DEFAULT '',
+    insurance_coverage_details TEXT DEFAULT '',
     
     -- General Notes
-    remarks TEXT,
-    notes TEXT,               -- Additional Notes
+    remarks TEXT DEFAULT '',
+    notes TEXT DEFAULT '',               -- Additional Notes
     
     -- Validation constraints
     CHECK (

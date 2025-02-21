@@ -924,103 +924,84 @@ class PatientFrame(ctk.CTkFrame):
         ).pack(side="left", padx=5)
     
     def save_patient(self):
-        """Save patient details"""
+        """Save patient data to database"""
         try:
-            # Collect all field values
-            patient_data = {
-                'title': self.title_var.get(),
-                'first_name': self.first_name_var.get().strip(),
-                'middle_name': self.middle_name_var.get().strip(),
+            # Validate mandatory fields first
+            if not self.validate_mandatory_fields():
+                return False
+
+            # Prepare patient data with proper validation
+            patient_data = {}
+            
+            # Handle required fields with validation
+            try:
+                age_value = self.age_var.get().strip()
+                patient_data['age'] = int(age_value) if age_value else 1  # Default to 1 if empty
+            except ValueError:
+                messagebox.showerror("Validation Error", "Age must be a valid number")
+                return False
+
+            phone_value = self.phone_var.get().strip()
+            if not phone_value:
+                messagebox.showerror("Validation Error", "Phone number is required")
+                return False
+            patient_data['phone'] = phone_value
+
+            first_name = self.first_name_var.get().strip()
+            if not first_name:
+                messagebox.showerror("Validation Error", "First name is required")
+                return False
+            patient_data['first_name'] = first_name
+
+            # Handle optional fields with empty string defaults
+            patient_data.update({
                 'last_name': self.last_name_var.get().strip(),
+                'title': self.title_var.get().strip(),
+                'middle_name': self.middle_name_var.get().strip(),
                 'nickname': self.nickname_var.get().strip(),
+                'gender': self.gender_var.get().strip() or 'Other',
+                'email': self.email_var.get().strip(),
                 'organization': self.organization_var.get().strip(),
                 'job_title': self.job_title_var.get().strip(),
-                'gender': self.gender_var.get(),
-                'age': int(self.age_var.get().strip()),
-                'phone': self.phone_var.get().strip(),
-                'secondary_phone': self.secondary_phone_var.get().strip(),
-                'work_phone': self.work_phone_var.get().strip(),
-                'email': self.email_var.get().strip(),
-                'secondary_email': self.secondary_email_var.get().strip(),
-                'work_email': self.work_email_var.get().strip(),
-                'website': self.website_var.get().strip(),
-                
-                # Primary Address
                 'address_street': self.street_var.get().strip(),
                 'address_city': self.city_var.get().strip(),
                 'address_state': self.state_var.get().strip(),
                 'address_zip': self.zip_var.get().strip(),
-                
-                # Secondary Address
-                'secondary_address_street': self.secondary_street_var.get().strip(),
-                'secondary_address_city': self.secondary_city_var.get().strip(),
-                'secondary_address_state': self.secondary_state_var.get().strip(),
-                'secondary_address_zip': self.secondary_zip_var.get().strip(),
-                
-                # Work Address
-                'work_address_street': self.work_street_var.get().strip(),
-                'work_address_city': self.work_city_var.get().strip(),
-                'work_address_state': self.work_state_var.get().strip(),
-                'work_address_zip': self.work_zip_var.get().strip(),
-                
-                # Emergency Contact
                 'emergency_contact_name': self.emergency_name_var.get().strip(),
                 'emergency_contact_phone': self.emergency_phone_var.get().strip(),
                 'emergency_contact_relation': self.emergency_relation_var.get().strip(),
-                
-                # Medical Information
-                'reference_source': self.reference_entry.get().strip(),
-                'medical_conditions': self.conditions_text.get("1.0", "end-1c"),
-                'past_surgeries': self.surgeries_text.get("1.0", "end-1c"),
-                'current_medications': self.medications_text.get("1.0", "end-1c"),
-                'allergies': self.allergies_text.get("1.0", "end-1c"),
-                'chiropractic_history': self.history_text.get("1.0", "end-1c"),
-                
-                # Insurance Information
+                'medical_conditions': self.conditions_text.get("1.0", "end-1c").strip(),
+                'past_surgeries': self.surgeries_text.get("1.0", "end-1c").strip(),
+                'current_medications': self.medications_text.get("1.0", "end-1c").strip(),
+                'allergies': self.allergies_text.get("1.0", "end-1c").strip(),
                 'insurance_provider': self.insurance_provider_entry.get().strip(),
                 'insurance_policy_number': self.policy_number_entry.get().strip(),
-                'insurance_coverage_details': self.coverage_text.get("1.0", "end-1c"),
-                
-                # Additional Notes
-                'notes': self.notes_text.get("1.0", "end-1c")
-            }
-            
-            # Remove empty values
-            patient_data = {k: v for k, v in patient_data.items() if v}
-            
-            selected = self.patient_tree.selection()
-            
-            # Use transaction context manager
+                'insurance_coverage_details': self.coverage_text.get("1.0", "end-1c").strip()
+            })
+
+            # Ensure all optional text fields default to empty string if None
+            for key in patient_data:
+                if patient_data[key] is None:
+                    patient_data[key] = ''
+
+            # Use transaction context manager for database operations
             with self.db.transaction() as db:
-                if selected:
-                    # Update existing patient
-                    patient_id = int(self.patient_tree.item(selected[0])["tags"][0])
-                    db.update_patient(patient_id, patient_data)
-                    
-                    # Refresh session history for the updated patient
-                    patient = db.get_patient(patient_id)
-                    self.refresh_session_history(patient.get('session_history', []))
-                    
-                    messagebox.showinfo("Success", "Patient updated successfully")
-                else:
-                    # Add new patient
+                if self.patient_id:  # Update existing patient
+                    db.update_patient(self.patient_id, patient_data)
+                else:  # Add new patient
                     new_patient_id = db.add_patient(patient_data)
-                    
-                    # Refresh session history for the new patient
-                    patient = db.get_patient(new_patient_id)
-                    self.refresh_session_history(patient.get('session_history', []))
-                    
-                    messagebox.showinfo("Success", "Patient added successfully")
-            
-            # Refresh UI components
-            self.refresh_patient_list()  # Refresh patient list
-            self.refresh_callback()      # Refresh dashboard appointments
-            
+                    self.patient_id = new_patient_id
+
+                messagebox.showinfo("Success", "Patient saved successfully!")
+                self.refresh_patient_list()
+                return True
+
         except Exception as e:
-            messagebox.showerror("Error", f"Failed to save patient: {str(e)}")
+            messagebox.showerror("Error", f"Error saving patient: {str(e)}")
             print(f"Error saving patient: {str(e)}")
             import traceback
             traceback.print_exc()
+            return False
     
     def validate_mandatory_fields(self):
         """Validate all mandatory fields"""

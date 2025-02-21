@@ -391,7 +391,6 @@ class SettingsFrame(ctk.CTkFrame):
                     try:
                         # Get name fields
                         first_name = row.get('First Name', '').strip()
-                        middle_name = row.get('Middle Name', '').strip()
                         last_name = row.get('Last Name', '').strip()
                         
                         # If no first name, skip this contact
@@ -420,41 +419,31 @@ class SettingsFrame(ctk.CTkFrame):
                             skipped_count += 1
                             continue
                         
-                        # Create patient data with mandatory fields
+                        # Create patient data with mandatory fields and empty strings for optional fields
                         patient_data = {
                             'first_name': first_name,
+                            'last_name': '',  # Default to empty string
                             'phone': phone,
-                            'age': 1,  # Default value to satisfy constraint
-                            'gender': 'Other',  # Default value to satisfy constraint
+                            'gender': 'Other',  # Default value
+                            'age': 1,  # Default value
+                            'email': '',  # Default empty string
+                            'title': '',  # Default empty string
+                            'middle_name': '',  # Default empty string
+                            'nickname': '',  # Default empty string
+                            'organization': '',  # Default empty string
+                            'job_title': ''  # Default empty string
                         }
                         
-                        # Add last name only if it exists
+                        # Only add last name if it exists and is not empty
                         if last_name:
                             patient_data['last_name'] = last_name
                         
-                        # Add middle name if present
-                        if middle_name:
-                            patient_data['middle_name'] = middle_name
-                        
-                        # Add name prefix if present
-                        name_prefix = row.get('Name Prefix', '').strip()
-                        if name_prefix:
-                            patient_data['title'] = name_prefix
-                        
-                        # Add organization info if present
-                        org_name = row.get('Organization Name', '').strip()
-                        org_title = row.get('Organization Title', '').strip()
-                        if org_name:
-                            patient_data['organization'] = org_name
-                        if org_title:
-                            patient_data['job_title'] = org_title
-                        
-                        # Add email if present
+                        # Add email if present and not empty
                         email = row.get('E-mail 1 - Value', '').strip()
                         if email:
                             patient_data['email'] = email
                         
-                        # Add address if present
+                        # Add address fields only if they have non-empty values
                         address_fields = {
                             'address_street': row.get('Address 1 - Street', '').strip(),
                             'address_city': row.get('Address 1 - City', '').strip(),
@@ -462,10 +451,12 @@ class SettingsFrame(ctk.CTkFrame):
                             'address_zip': row.get('Address 1 - Postal Code', '').strip()
                         }
                         
-                        # Add address fields only if they have values
+                        # Add non-empty address fields
                         for key, value in address_fields.items():
                             if value:
                                 patient_data[key] = value
+                            else:
+                                patient_data[key] = ''  # Default to empty string
                         
                         # Add notes if present
                         notes = row.get('Notes', '').strip()
@@ -482,16 +473,15 @@ class SettingsFrame(ctk.CTkFrame):
                             skipped_count += 1
                             continue
                         
-                        # Prepare the query dynamically based on provided fields
+                        # Insert the patient
                         fields = []
                         values = []
                         placeholders = []
                         
                         for field, value in patient_data.items():
-                            if value is not None:  # Only include non-None values
-                                fields.append(field)
-                                values.append(value)
-                                placeholders.append('?')
+                            fields.append(field)
+                            values.append(value)
+                            placeholders.append('?')
                         
                         query = f"""
                         INSERT INTO patients ({', '.join(fields)})
@@ -1220,6 +1210,9 @@ class SettingsFrame(ctk.CTkFrame):
                 # For names with more than 2 parts, combine all middle parts into the last name
                 patient_info['first_name'] = name_parts[0]
                 patient_info['last_name'] = ' '.join(name_parts[1:])  # Combine remaining parts as last name
+            else:
+                patient_info['first_name'] = cleaned_name
+                patient_info['last_name'] = ''  # Empty string for no last name
         
         # Extract additional info from description
         if description:
@@ -1231,12 +1224,16 @@ class SettingsFrame(ctk.CTkFrame):
                     phone = ''.join(filter(str.isdigit, line.split(':', 1)[1]))
                     if phone:
                         patient_info['phone'] = phone
+                    else:
+                        patient_info['phone'] = ''
                 
                 # Look for email
                 elif 'email:' in line:
                     email = line.split(':', 1)[1].strip()
                     if email:
                         patient_info['email'] = email
+                    else:
+                        patient_info['email'] = ''
         
         return patient_info if patient_info else None
 
@@ -1331,13 +1328,31 @@ class SettingsFrame(ctk.CTkFrame):
             with open(file_path, 'rb') as file:
                 cal = Calendar.from_ical(file.read())
                 
+                # First pass: collect all unique months that need tables
+                unique_months = set()
+                for component in cal.walk('VEVENT'):
+                    start = component.get('dtstart').dt
+                    if hasattr(start, 'tzinfo') and start.tzinfo is not None:
+                        start = start.astimezone(timezone.utc).replace(tzinfo=None)
+                    unique_months.add(start.strftime("%Y-%m"))
+                
+                # Create tables for all required months
+                print("\nCreating appointment tables for required months...")
+                for month_str in unique_months:
+                    try:
+                        date = datetime.strptime(f"{month_str}-01", "%Y-%m-%d")
+                        self.db._create_month_appointment_table(date)
+                        print(f"Created/verified table for {month_str}")
+                    except Exception as e:
+                        print(f"Error creating table for {month_str}: {str(e)}")
+                
                 # Process each event in the calendar
                 for component in cal.walk('VEVENT'):
                     try:
                         # Get event details
                         start = component.get('dtstart').dt
-                        summary = str(component.get('summary', ''))
-                        description = str(component.get('description', ''))
+                        summary = str(component.get('summary', '')).strip()
+                        description = str(component.get('description', '')).strip()
                         
                         print(f"\nProcessing event: {summary}")
                         print(f"Date/Time: {start}")
@@ -1372,13 +1387,25 @@ class SettingsFrame(ctk.CTkFrame):
                             print("No match found, creating new patient...")
                             # Create new patient with available info
                             patient_data = {
-                                'first_name': patient_info.get('first_name', patient_info['full_name'].split()[0]),
-                                'last_name': patient_info.get('last_name', 'Unknown'),
-                                'phone': patient_info.get('phone', ''),
-                                'email': patient_info.get('email', ''),
+                                'first_name': patient_info.get('first_name', patient_info['full_name'].split()[0]).strip(),
+                                'phone': patient_info.get('phone', '').strip(),
+                                'age': 1,  # Default value
                                 'gender': 'Other',  # Default value
-                                'age': 1  # Default value
+                                'last_name': '',  # Default empty string
+                                'email': '',  # Default empty string
+                                'title': '',  # Default empty string
+                                'middle_name': '',  # Default empty string
+                                'nickname': '',  # Default empty string
+                                'organization': '',  # Default empty string
+                                'job_title': ''  # Default empty string
                             }
+                            
+                            # Only add non-empty values
+                            if patient_info.get('last_name', '').strip():
+                                patient_data['last_name'] = patient_info['last_name'].strip()
+                            if patient_info.get('email', '').strip():
+                                patient_data['email'] = patient_info['email'].strip()
+                            
                             print(f"New patient data: {patient_data}")
                             try:
                                 patient_id = self.db.add_patient(patient_data)
@@ -1404,7 +1431,7 @@ class SettingsFrame(ctk.CTkFrame):
                                 'patient_id': patient_id,
                                 'appointment_date': appointment_date,
                                 'appointment_time': appointment_time,
-                                'notes': description,
+                                'notes': description if description else '',  # Empty string if no description
                                 'status': 'scheduled'
                             }
                             
@@ -1460,54 +1487,51 @@ class SettingsFrame(ctk.CTkFrame):
                 "Import Error",
                 error_msg
             )
-    
+
     def clear_all_appointments(self):
         """Clear all appointments from the database"""
         try:
-            # Show warning dialog
+            # Show confirmation dialog
             if not messagebox.askyesno(
-                "Clear All Appointments",
-                "WARNING: This will permanently delete ALL appointments from the database.\n\n"
-                "This action cannot be undone.\n"
-                "Are you absolutely sure you want to continue?",
+                "Confirm Clear",
+                "This will permanently delete ALL appointments.\n\n" +
+                "Are you sure you want to continue?",
                 icon="warning"
             ):
                 return
-
-            # Double confirm for safety
-            if not messagebox.askyesno(
-                "Final Confirmation",
-                "Please confirm one more time:\n\n"
-                "ALL appointments will be permanently deleted.\n"
-                "This includes past, present, and future appointments.\n\n"
-                "Do you want to proceed?",
-                icon="warning"
-            ):
-                return
-
-            # Get all appointment tables
+            
+            # Connect to database
             self.db.connect()
             try:
-                # Get list of all appointment tables
+                # Get all appointment tables
                 tables = self.db.cursor.execute(
                     "SELECT name FROM sqlite_master WHERE type='table' AND name LIKE 'appointments_%'"
                 ).fetchall()
-
-                # Clear each appointment table
+                
+                # Begin transaction
+                self.db.cursor.execute("BEGIN TRANSACTION")
+                
+                # Delete from each table
                 for table in tables:
                     self.db.cursor.execute(f"DELETE FROM {table[0]}")
-
+                
+                # Commit changes
                 self.db.conn.commit()
-
-                # Show success message
+                
                 messagebox.showinfo(
                     "Success",
-                    f"Successfully cleared all appointments from {len(tables)} tables."
+                    "All appointments have been cleared from the database."
                 )
-
+                
+            except Exception as e:
+                # Rollback on error
+                if self.db.conn:
+                    self.db.conn.rollback()
+                raise e
+                
             finally:
                 self.db.close()
-
+                
         except Exception as e:
             messagebox.showerror(
                 "Error",
@@ -1515,65 +1539,65 @@ class SettingsFrame(ctk.CTkFrame):
             )
 
     def clear_all_patients(self):
-        """Clear all patients from the database"""
+        """Clear all patients and their related data from the database"""
         try:
-            # Show warning dialog
+            # Show confirmation dialog
             if not messagebox.askyesno(
-                "Clear All Patients",
-                "WARNING: This will permanently delete ALL patients from the database.\n\n"
-                "This action cannot be undone.\n"
-                "Are you absolutely sure you want to continue?",
+                "Confirm Clear",
+                "This will permanently delete ALL patients and their related data, " +
+                "including appointments and session history.\n\n" +
+                "Are you sure you want to continue?",
                 icon="warning"
             ):
                 return
-
-            # Double confirm for safety
-            if not messagebox.askyesno(
-                "Final Confirmation",
-                "Please confirm one more time:\n\n"
-                "ALL patients and their related data will be permanently deleted.\n"
-                "This includes appointments, session history, and all patient records.\n\n"
-                "Do you want to proceed?",
-                icon="warning"
-            ):
-                return
-
-            # Clear all patients
+            
+            # Connect to database
             self.db.connect()
             try:
-                # First clear all appointment tables
+                # Begin transaction
+                self.db.cursor.execute("BEGIN TRANSACTION")
+                
+                # Clear appointment tables
                 tables = self.db.cursor.execute(
                     "SELECT name FROM sqlite_master WHERE type='table' AND name LIKE 'appointments_%'"
                 ).fetchall()
-
+                
                 for table in tables:
                     self.db.cursor.execute(f"DELETE FROM {table[0]}")
-
+                
                 # Clear session history
                 self.db.cursor.execute("DELETE FROM session_history")
                 
                 # Clear patient history
                 self.db.cursor.execute("DELETE FROM patient_history")
                 
-                # Finally clear patients table
+                # Clear patients table
                 self.db.cursor.execute("DELETE FROM patients")
                 
-                # Reset the auto-increment counter
+                # Reset auto-increment counters
                 self.db.cursor.execute("DELETE FROM sqlite_sequence WHERE name='patients'")
-
+                self.db.cursor.execute("DELETE FROM sqlite_sequence WHERE name='session_history'")
+                self.db.cursor.execute("DELETE FROM sqlite_sequence WHERE name='patient_history'")
+                
+                # Commit changes
                 self.db.conn.commit()
-
-                # Show success message
+                
                 messagebox.showinfo(
                     "Success",
-                    "Successfully cleared all patients and related data from the database."
+                    "All patients and related data have been cleared from the database."
                 )
-
+                
+            except Exception as e:
+                # Rollback on error
+                if self.db.conn:
+                    self.db.conn.rollback()
+                raise e
+                
             finally:
                 self.db.close()
-
+                
         except Exception as e:
             messagebox.showerror(
                 "Error",
                 f"Failed to clear patients: {str(e)}"
-            ) 
+            )

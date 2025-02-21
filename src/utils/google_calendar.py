@@ -151,95 +151,189 @@ class GoogleCalendarManager:
         self.service = build('calendar', 'v3', credentials=creds)
         return True
         
-    def sync_appointments(self, appointments):
+    def sync_appointments(self, appointments, calendar_id='primary'):
         """Sync appointments with Google Calendar"""
+        if not self.service:
+            if not self.authenticate():
+                return False
+                
         try:
-            if not self.service:
-                if not self.authenticate():
-                    return False
+            # Get existing events for deduplication
+            # Get events for the date range of appointments
+            if appointments:
+                dates = [datetime.strptime(a['appointment_date'], "%Y-%m-%d") for a in appointments]
+                min_date = min(dates).isoformat() + 'Z'
+                max_date = (max(dates) + timedelta(days=1)).isoformat() + 'Z'
+            else:
+                min_date = datetime.utcnow().isoformat() + 'Z'
+                max_date = (datetime.utcnow() + timedelta(days=7)).isoformat() + 'Z'
             
-            calendar_id = 'primary'  # Use primary calendar
-            
-            # Get existing events for the date range
-            start_date = min(appt['appointment_date'] for appt in appointments) if appointments else None
-            end_date = max(appt['appointment_date'] for appt in appointments) if appointments else None
-            
-            if not start_date or not end_date:
-                return True  # No appointments to sync
-            
-            # Get timezone-aware datetime objects
-            start_datetime = datetime.strptime(f"{start_date} 00:00:00", "%Y-%m-%d %H:%M:%S")
-            end_datetime = datetime.strptime(f"{end_date} 23:59:59", "%Y-%m-%d %H:%M:%S")
-            
-            # Get existing events
             events_result = self.service.events().list(
                 calendarId=calendar_id,
-                timeMin=start_datetime.isoformat() + 'Z',
-                timeMax=end_datetime.isoformat() + 'Z',
+                timeMin=min_date,
+                timeMax=max_date,
                 singleEvents=True,
                 orderBy='startTime'
             ).execute()
-            
             existing_events = events_result.get('items', [])
             
-            # Create a map of existing events by date and time
-            event_map = {}
+            # Create lookup maps for existing events
+            existing_event_map = {}  # Map by appointment ID
+            time_event_map = {}      # Map by datetime
             for event in existing_events:
-                start = event['start'].get('dateTime', event['start'].get('date'))
-                if start:
-                    event_map[start] = event
+                # Check for appointment ID in extended properties
+                props = event.get('extendedProperties', {}).get('private', {})
+                appt_id = props.get('appointmentId')
+                if appt_id:
+                    if appt_id not in existing_event_map:
+                        existing_event_map[appt_id] = []
+                    existing_event_map[appt_id].append(event)
+                
+                # Also map by start time for duplicate detection
+                start_time = event['start'].get('dateTime')
+                if start_time:
+                    if start_time not in time_event_map:
+                        time_event_map[start_time] = []
+                    time_event_map[start_time].append(event)
             
-            # Process each appointment
+            # Track sync statistics
+            stats = {
+                'updated': 0,
+                'created': 0,
+                'skipped': 0,
+                'errors': 0
+            }
+            
+            # Create or update events
             for appointment in appointments:
                 try:
-                    # Create event datetime
-                    event_date = appointment['appointment_date']
-                    event_time = appointment['appointment_time']
-                    event_datetime = datetime.strptime(f"{event_date} {event_time}", "%Y-%m-%d %H:%M")
+                    # Calculate event times
+                    start_datetime = datetime.strptime(f"{appointment['appointment_date']}T{appointment['appointment_time']}", "%Y-%m-%dT%H:%M")
+                    end_datetime = start_datetime + timedelta(minutes=self.APPOINTMENT_DURATION)
                     
-                    # Format event details
-                    patient_name = appointment.get('patient_name', 'Patient')
+                    # Format detailed description with end time
+                    description = f"""
+Patient Details:
+---------------
+Name: {appointment['patient_name']}
+Status: {appointment.get('status', 'Scheduled').title()}
+
+Appointment Time:
+--------------
+Start: {start_datetime.strftime('%I:%M %p')}
+End: {end_datetime.strftime('%I:%M %p')}
+Duration: {self.APPOINTMENT_DURATION} minutes
+
+Appointment Notes:
+----------------
+{appointment.get('notes', 'No notes provided')}
+
+Additional Information:
+--------------------
+Patient ID: {appointment['patient_id']}
+Appointment ID: {appointment['id']}
+Last Updated: {datetime.now().strftime('%Y-%m-%d %H:%M')}
+"""
+
                     event = {
-                        'summary': f'🏥 Chiropractic: {patient_name}',
-                        'description': appointment.get('notes', ''),
+                        'summary': f"🏥 Chiropractic: {appointment['patient_name']}",
+                        'description': description,
                         'start': {
-                            'dateTime': event_datetime.isoformat(),
+                            'dateTime': start_datetime.isoformat(),
                             'timeZone': 'UTC'
                         },
                         'end': {
-                            'dateTime': (event_datetime + timedelta(minutes=30)).isoformat(),
+                            'dateTime': end_datetime.isoformat(),
                             'timeZone': 'UTC'
                         },
                         'reminders': {
-                            'useDefault': True
+                            'useDefault': False,
+                            'overrides': [
+                                {'method': 'email', 'minutes': 24 * 60},
+                                {'method': 'popup', 'minutes': 30}
+                            ]
+                        },
+                        'colorId': self._get_status_color(appointment.get('status', 'scheduled')),
+                        'extendedProperties': {
+                            'private': {
+                                'appointmentId': str(appointment['id']),
+                                'patientId': str(appointment['patient_id']),
+                                'status': appointment.get('status', 'scheduled').lower(),
+                                'lastUpdated': datetime.now().isoformat()
+                            }
                         }
                     }
                     
-                    # Check if event already exists
-                    existing_event = event_map.get(event_datetime.isoformat() + 'Z')
+                    # Get existing events for this appointment
+                    existing_events_for_appt = existing_event_map.get(str(appointment['id']), [])
+                    existing_events_at_time = time_event_map.get(start_datetime.isoformat(), [])
                     
-                    if existing_event:
-                        # Update existing event
-                        self.service.events().update(
-                            calendarId=calendar_id,
-                            eventId=existing_event['id'],
-                            body=event
-                        ).execute()
-                    else:
-                        # Create new event
-                        self.service.events().insert(
-                            calendarId=calendar_id,
-                            body=event
-                        ).execute()
+                    # Check for duplicates
+                    is_duplicate = False
+                    event_to_update = None
                     
+                    # First check for events with matching appointment ID
+                    if existing_events_for_appt:
+                        event_to_update = existing_events_for_appt[0]
+                        # Delete any additional duplicates with same appointment ID
+                        for dup_event in existing_events_for_appt[1:]:
+                            try:
+                                self.service.events().delete(
+                                    calendarId=calendar_id,
+                                    eventId=dup_event['id']
+                                ).execute()
+                                print(f"Deleted duplicate event with same appointment ID for appointment {appointment['id']}")
+                            except Exception as e:
+                                print(f"Error deleting duplicate event: {str(e)}")
+                    
+                    # Then check for events at the same time
+                    elif existing_events_at_time:
+                        for time_event in existing_events_at_time:
+                            # Check if it's a chiropractic appointment
+                            if "🏥 Chiropractic:" in time_event.get('summary', ''):
+                                event_to_update = time_event
+                                print(f"Found existing event at same time for appointment {appointment['id']}")
+                                break
+                    
+                    try:
+                        if event_to_update:
+                            # Update existing event
+                            self.service.events().update(
+                                calendarId=calendar_id,
+                                eventId=event_to_update['id'],
+                                body=event
+                            ).execute()
+                            print(f"Updated event for appointment {appointment['id']}")
+                            stats['updated'] += 1
+                        else:
+                            # Create new event
+                            self.service.events().insert(
+                                calendarId=calendar_id,
+                                body=event
+                            ).execute()
+                            print(f"Created new event for appointment {appointment['id']}")
+                            stats['created'] += 1
+                    except Exception as e:
+                        print(f"Error syncing appointment {appointment['id']}: {str(e)}")
+                        stats['errors'] += 1
+                        continue
+                        
                 except Exception as e:
-                    print(f"Error syncing appointment: {str(e)}")
+                    print(f"Error processing appointment {appointment.get('id', 'unknown')}: {str(e)}")
+                    stats['errors'] += 1
                     continue
+            
+            # Print sync summary
+            print("\nSync Summary:")
+            print(f"Updated: {stats['updated']}")
+            print(f"Created: {stats['created']}")
+            print(f"Skipped: {stats['skipped']}")
+            print(f"Errors: {stats['errors']}")
             
             return True
             
         except Exception as e:
-            print(f"Error in sync_appointments: {str(e)}")
+            print(f"Error syncing with Google Calendar: {str(e)}")
             return False
             
     def get_calendar_events(self, start_date=None, end_date=None, calendar_id='primary'):
