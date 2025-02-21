@@ -17,7 +17,7 @@ A comprehensive management system for chiropractic clinics, featuring appointmen
 
 ### Windows Users
 
-1. Download the latest installer: [ChiropracticManager_Setup_v2.exe](releases/ChiropracticManager_Setup_v2.exe)
+1. Download the latest installer: [ChiropracticManager_Setup.exe](installer/ChiropracticManager_Setup.exe)
 2. Run the installer as administrator
 3. Follow the installation wizard
 4. Launch the application from your Start Menu or Desktop shortcut
@@ -31,6 +31,7 @@ If you want to modify or build the application from source:
 #### Prerequisites
 - Python 3.9 or later
 - pip package manager
+- Inno Setup 6 (for building the installer)
 
 #### Setup
 1. Clone the repository:
@@ -43,10 +44,12 @@ git clone https://github.com/njawaiddev/Junaid-Chiropractic-Appointment-Manageme
 pip install -r requirements.txt
 ```
 
-3. Run the application:
+3. Build the installer:
 ```bash
-python src/main.py
+build_windows.bat
 ```
+
+The installer will be created in the `installer` folder.
 
 ## Google Calendar Integration
 
